@@ -1,0 +1,3902 @@
+{
+  "nav_dashboard": {
+    "en": "Dashboard",
+    "tr": "Gösterge Paneli"
+  },
+  "nav_twitch": {
+    "en": "Twitch Stream Test",
+    "tr": "Twitch Yayın Testi"
+  },
+  "nav_cgnat": {
+    "en": "CGNAT Detection",
+    "tr": "CGNAT Tespiti"
+  },
+  "nav_mtu": {
+    "en": "MTU / MSS",
+    "tr": "MTU / MSS"
+  },
+  "tab_mtu_title": {
+    "en": "MTU / MSS Discovery",
+    "tr": "MTU / MSS Keşfi"
+  },
+  "tab_mtu_sub": {
+    "en": "Discover your path MTU and optimal MSS using Don't-Fragment probing",
+    "tr": "Don't-Fragment probe ile yol MTU'nuzu ve ideal MSS'inizi keşfedin"
+  },
+  "mtu_intro_title": {
+    "en": "Discover your path MTU",
+    "tr": "Yol MTU'nuzu keşfedin"
+  },
+  "mtu_intro_desc": {
+    "en": "Sends Don't-Fragment ICMP probes of increasing size to find the largest packet that travels your route without fragmentation. Reveals PPPoE/VPN overhead and misconfigured MTU. No admin required.\n\nEstimated time: ~10 sec",
+    "tr": "Rotanızda parçalanmadan iletilen en büyük paketi bulmak için artan boyutlu Don't-Fragment ICMP probe'ları gönderir. PPPoE/VPN overhead'ini ve yanlış MTU ayarını ortaya çıkarır. Yönetici gerekmez.\n\nTahmini test süresi: ~10 sn"
+  },
+  "mtu_run_btn": {
+    "en": "Discover MTU",
+    "tr": "MTU Keşfet"
+  },
+  "mtu_running": {
+    "en": "Probing path MTU…",
+    "tr": "Yol MTU'su aranıyor…"
+  },
+  "mtu_col_target": {
+    "en": "Target",
+    "tr": "Hedef"
+  },
+  "mtu_col_mtu": {
+    "en": "Path MTU",
+    "tr": "Yol MTU"
+  },
+  "mtu_col_mss": {
+    "en": "MSS",
+    "tr": "MSS"
+  },
+  "mtu_blocked": {
+    "en": "ICMP blocked — MTU could not be measured for this target.",
+    "tr": "ICMP bloklu — bu hedef için MTU ölçülemedi."
+  },
+  "mtu_detail_optimal": {
+    "en": "Optimal path MTU (1500+). Packets travel without fragmentation — best possible throughput and latency.",
+    "tr": "İdeal yol MTU'su (1500+). Paketler parçalanmadan iletilir — mümkün en iyi hız ve gecikme."
+  },
+  "mtu_detail_pppoe": {
+    "en": "Path MTU is 1492 — the standard for PPPoE/DSL connections (8 bytes of PPPoE overhead). This is completely normal and optimal for your connection type.",
+    "tr": "Yol MTU'su 1492 — PPPoE/DSL bağlantılarının standardı (8 byte PPPoE overhead). Bağlantı tipiniz için tamamen normal ve idealdir."
+  },
+  "mtu_detail_tunnel": {
+    "en": "Path MTU is slightly reduced (1400–1491), typical of VPN/tunnel overhead. Acceptable — minor impact at most.",
+    "tr": "Yol MTU'su biraz düşük (1400–1491), VPN/tünel overhead'inde tipiktir. Kabul edilebilir — en fazla küçük etki."
+  },
+  "mtu_detail_low": {
+    "en": "Low path MTU (1280–1399). Large packets get fragmented, which can reduce throughput and cause issues with some apps and VPNs. Consider checking your router/PPPoE MTU setting.",
+    "tr": "Düşük yol MTU (1280–1399). Büyük paketler parçalanıyor; bu hızı düşürebilir ve bazı uygulama/VPN'lerde sorun çıkarabilir. Router/PPPoE MTU ayarınızı kontrol etmeyi düşünün."
+  },
+  "mtu_detail_critical": {
+    "en": "Critically low path MTU (below 1280). This breaks IPv6 (requires ≥1280) and causes severe fragmentation across many protocols. Likely a misconfigured router or tunnel — needs attention.",
+    "tr": "Kritik düşük yol MTU (1280 altı). IPv6'yı bozar (≥1280 gerekir) ve birçok protokolde ciddi parçalanmaya yol açar. Muhtemelen yanlış yapılandırılmış router veya tünel — dikkat gerektirir."
+  },
+  "mtu_detail_blocked": {
+    "en": "Could not measure path MTU — the target blocks Don't-Fragment ICMP probes. Try again or check your firewall.",
+    "tr": "Yol MTU ölçülemedi — hedef Don't-Fragment ICMP probe'larını blokluyor. Tekrar deneyin veya güvenlik duvarınızı kontrol edin."
+  },
+  "tab_cgnat_title": {
+    "en": "CGNAT Detection",
+    "tr": "CGNAT Tespiti"
+  },
+  "tab_cgnat_sub": {
+    "en": "Detect if your ISP places you behind Carrier-Grade NAT (shared public IP)",
+    "tr": "ISP'nizin sizi Carrier-Grade NAT (paylaşımlı public IP) arkasına koyup koymadığını tespit edin"
+  },
+  "cgnat_intro_title": {
+    "en": "Are you behind CGNAT?",
+    "tr": "CGNAT arkasında mısınız?"
+  },
+  "cgnat_intro_desc": {
+    "en": "Checks your router's WAN IP (via UPnP), your public IP (via STUN and web), and compares them. CGNAT means a shared public IP — it breaks port forwarding, hosting game/servers, some P2P and remote access.\n\nEstimated time: ~6 sec",
+    "tr": "Router'ınızın WAN IP'sini (UPnP ile), public IP'nizi (STUN ve web ile) kontrol eder ve karşılaştırır. CGNAT = paylaşımlı public IP — port yönlendirmeyi, oyun/sunucu barındırmayı, bazı P2P ve uzaktan erişimi bozar.\n\nTahmini test süresi: ~6 sn"
+  },
+  "cgnat_run_btn": {
+    "en": "Run CGNAT Test",
+    "tr": "CGNAT Testini Çalıştır"
+  },
+  "cgnat_running": {
+    "en": "Detecting NAT type…",
+    "tr": "NAT tipi tespit ediliyor…"
+  },
+  "cgnat_lbl_router_wan": {
+    "en": "Router WAN IP",
+    "tr": "Router WAN IP"
+  },
+  "cgnat_lbl_stun": {
+    "en": "Public IP (STUN)",
+    "tr": "Public IP (STUN)"
+  },
+  "cgnat_lbl_web": {
+    "en": "Public IP (Web)",
+    "tr": "Public IP (Web)"
+  },
+  "cgnat_lbl_local": {
+    "en": "Local IP",
+    "tr": "Yerel IP"
+  },
+  "cgnat_upnp_off": {
+    "en": "UPnP disabled on router — router WAN IP unavailable. Enable UPnP for a definitive result.",
+    "tr": "Router'da UPnP kapalı — router WAN IP alınamadı. Kesin sonuç için UPnP'yi açın."
+  },
+  "cgnat_verdict_cgnat": {
+    "en": "CGNAT Detected",
+    "tr": "CGNAT Tespit Edildi"
+  },
+  "cgnat_verdict_double_nat": {
+    "en": "Double NAT",
+    "tr": "Çift NAT"
+  },
+  "cgnat_verdict_public": {
+    "en": "Public IP (No CGNAT)",
+    "tr": "Public IP (CGNAT Yok)"
+  },
+  "cgnat_verdict_unknown": {
+    "en": "Inconclusive",
+    "tr": "Belirlenemedi"
+  },
+  "cgnat_detail_cgnat": {
+    "en": "Your router's WAN IP is in the carrier-grade NAT range (100.64.0.0/10). Your ISP shares one public IP among many customers. Port forwarding and hosting servers won't work without a workaround (e.g. VPN with port forwarding, or request a public IP from your ISP).",
+    "tr": "Router'ınızın WAN IP'si carrier-grade NAT aralığında (100.64.0.0/10). ISP'niz tek public IP'yi birçok müşteri arasında paylaşıyor. Port yönlendirme ve sunucu barındırma, bir çözüm olmadan (örn. port yönlendirmeli VPN veya ISP'den public IP talebi) çalışmaz."
+  },
+  "cgnat_detail_double_nat": {
+    "en": "Your router's WAN IP is a private address — there is another NAT layer above it (your ISP's CGNAT, or a second router). This typically breaks port forwarding and inbound connections.",
+    "tr": "Router'ınızın WAN IP'si private bir adres — üstünde başka bir NAT katmanı var (ISP'nizin CGNAT'ı veya ikinci bir router). Bu genelde port yönlendirmeyi ve gelen bağlantıları bozar."
+  },
+  "cgnat_detail_public": {
+    "en": "Your router has a real public IP that matches what the internet sees. You are NOT behind CGNAT — port forwarding and hosting work normally.",
+    "tr": "Router'ınız, internetin gördüğüyle eşleşen gerçek bir public IP'ye sahip. CGNAT arkasında DEĞİLSİNİZ — port yönlendirme ve barındırma normal çalışır."
+  },
+  "cgnat_detail_public_diff": {
+    "en": "Your router has a public IP (slightly different from the web-detected one, which can happen with multi-WAN setups). You are not behind CGNAT.",
+    "tr": "Router'ınız public bir IP'ye sahip (web'den tespit edilenden biraz farklı; çoklu-WAN kurulumlarında olabilir). CGNAT arkasında değilsiniz."
+  },
+  "cgnat_detail_unknown_no_upnp": {
+    "en": "Could not read your router's WAN IP because UPnP is disabled. Your public IP looks normal, but CGNAT cannot be confirmed either way. Enable UPnP on your router for a definitive answer, or check the router's status page manually.",
+    "tr": "UPnP kapalı olduğu için router'ınızın WAN IP'si okunamadı. Public IP'niz normal görünüyor ama CGNAT ne kesin doğrulanabilir ne de elenebilir. Kesin sonuç için router'da UPnP'yi açın veya router durum sayfasını manuel kontrol edin."
+  },
+  "cgnat_detail_unknown": {
+    "en": "Could not gather enough information to determine your NAT type. Check your internet connection and try again.",
+    "tr": "NAT tipinizi belirlemek için yeterli bilgi toplanamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."
+  },
+  "diag_mod_cgnat": {
+    "en": "CGNAT / NAT Type",
+    "tr": "CGNAT / NAT Tipi"
+  },
+  "diag_cgnat_Aplus": {
+    "en": "You have a real public IP — no carrier-grade NAT. Port forwarding, hosting and inbound connections work normally.",
+    "tr": "Gerçek bir public IP'niz var — carrier-grade NAT yok. Port yönlendirme, barındırma ve gelen bağlantılar normal çalışır."
+  },
+  "diag_cgnat_D": {
+    "en": "Double NAT detected — there is an extra NAT layer above your router. Inbound connections and port forwarding may be unreliable.",
+    "tr": "Çift NAT tespit edildi — router'ınızın üstünde ekstra bir NAT katmanı var. Gelen bağlantılar ve port yönlendirme güvenilmez olabilir."
+  },
+  "diag_cgnat_F": {
+    "en": "You are behind carrier-grade NAT (shared public IP). Port forwarding and hosting are blocked without a workaround — affects game/server hosting, some P2P and remote access.",
+    "tr": "Carrier-grade NAT arkasındasınız (paylaşımlı public IP). Port yönlendirme ve barındırma bir çözüm olmadan engellidir — oyun/sunucu barındırma, bazı P2P ve uzaktan erişimi etkiler."
+  },
+  "insight_cgnat_public": {
+    "en": "Real public IP — you can host servers, forward ports and accept inbound connections.",
+    "tr": "Gerçek public IP — sunucu barındırabilir, port yönlendirebilir ve gelen bağlantı kabul edebilirsiniz."
+  },
+  "insight_cgnat_double_nat": {
+    "en": "Double NAT can break port forwarding and cause issues with gaming, VoIP and P2P. Consider bridging one router.",
+    "tr": "Çift NAT port yönlendirmeyi bozabilir; oyun, VoIP ve P2P'de sorun çıkarabilir. Bir router'ı bridge moda almayı düşünün."
+  },
+  "insight_cgnat_detected": {
+    "en": "Carrier-grade NAT means your public IP is shared — hosting game servers, port forwarding and some P2P won't work directly.",
+    "tr": "Carrier-grade NAT, public IP'nizin paylaşıldığı anlamına gelir — oyun sunucusu barındırma, port yönlendirme ve bazı P2P doğrudan çalışmaz."
+  },
+  "insight_cgnat_workaround": {
+    "en": "Workarounds: request a public/static IP from your ISP, or use a VPN that offers port forwarding.",
+    "tr": "Çözümler: ISP'nizden public/statik IP talep edin veya port yönlendirme sunan bir VPN kullanın."
+  },
+  "insight_cgnat_unknown": {
+    "en": "NAT type could not be confirmed (UPnP disabled on router). Enable UPnP for a definitive result.",
+    "tr": "NAT tipi doğrulanamadı (router'da UPnP kapalı). Kesin sonuç için UPnP'yi açın."
+  },
+  "diag_mod_mtu": {
+    "en": "MTU / MSS",
+    "tr": "MTU / MSS"
+  },
+  "diag_mod_dns_benchmark": {
+    "en": "DNS Performance",
+    "tr": "DNS Performansı"
+  },
+  "diag_mod_twitch": {
+    "en": "Stream Latency",
+    "tr": "Yayın Gecikmesi"
+  },
+  "diag_step_dns": {
+    "en": "DNS Benchmark",
+    "tr": "DNS Benchmark"
+  },
+  "diag_mtu_Aplus": {
+    "en": "Your path MTU is optimal (1492+). Packets travel without fragmentation — best throughput and latency.",
+    "tr": "Yol MTU'nuz ideal (1492+). Paketler parçalanmadan iletilir — en iyi hız ve gecikme."
+  },
+  "diag_mtu_A": {
+    "en": "Your path MTU is slightly reduced (tunnel/VPN overhead) but well within acceptable range.",
+    "tr": "Yol MTU'nuz biraz düşük (tünel/VPN overhead) ama kabul edilebilir aralıkta."
+  },
+  "diag_mtu_D": {
+    "en": "Low path MTU detected. Large packets get fragmented, which can hurt throughput and cause issues with some apps/VPNs. Check your router's MTU setting.",
+    "tr": "Düşük yol MTU tespit edildi. Büyük paketler parçalanıyor; bu hızı düşürebilir ve bazı uygulama/VPN'lerde sorun çıkarabilir. Router MTU ayarınızı kontrol edin."
+  },
+  "diag_mtu_F": {
+    "en": "Critically low path MTU (below 1280). This causes severe fragmentation and breaks IPv6 and many protocols. Likely a misconfigured router or tunnel.",
+    "tr": "Kritik düşük yol MTU (1280 altı). Ciddi parçalanmaya yol açar; IPv6 ve birçok protokolü bozar. Muhtemelen yanlış yapılandırılmış router veya tünel."
+  },
+  "insight_mtu_optimal": {
+    "en": "Path MTU is optimal — no packet fragmentation on your route.",
+    "tr": "Yol MTU'su ideal — rotanızda paket parçalanması yok."
+  },
+  "insight_mtu_tunnel": {
+    "en": "Slightly reduced MTU — typical of PPPoE/VPN/tunnels, generally harmless.",
+    "tr": "Hafif düşük MTU — PPPoE/VPN/tünellerde tipik, genelde zararsız."
+  },
+  "insight_mtu_low": {
+    "en": "Low MTU can fragment large packets and reduce throughput. Try matching your router/PPPoE MTU correctly.",
+    "tr": "Düşük MTU büyük paketleri parçalayıp hızı düşürebilir. Router/PPPoE MTU'sunu doğru eşleştirmeyi deneyin."
+  },
+  "insight_mtu_critical": {
+    "en": "Critically low MTU breaks IPv6 (needs ≥1280) and many protocols — check router/tunnel configuration urgently.",
+    "tr": "Kritik düşük MTU IPv6'yı (≥1280 gerekir) ve birçok protokolü bozar — router/tünel yapılandırmasını acilen kontrol edin."
+  },
+  "tab_twitch_title": {
+    "en": "Twitch Streaming Test",
+    "tr": "Twitch Yayın Testi"
+  },
+  "tab_twitch_sub": {
+    "en": "Measure your real upload bandwidth and latency to Twitch ingest servers",
+    "tr": "Twitch yayın sunucularına gerçek yükleme bant genişliğinizi ve gecikmenizi ölçün"
+  },
+  "twitch_intro_title": {
+    "en": "Test your stream to Twitch",
+    "tr": "Twitch yayınınızı test edin"
+  },
+  "twitch_intro_desc": {
+    "en": "Measures round-trip latency (RTT) to Twitch ingest servers. With your stream key, it also measures real upload bandwidth using Twitch's official ?bandwidthtest=true flag. Your channel will NOT go live and no notifications are sent.\n\nEstimated time: ~45 sec",
+    "tr": "Twitch yayın sunucularına gidiş-dönüş gecikmesini (RTT) ölçer. Yayın anahtarınızla, Twitch'in resmi ?bandwidthtest=true bayrağını kullanarak gerçek yükleme bant genişliğinizi de ölçer. Kanalınız CANLIYA ÇIKMAZ ve bildirim gönderilmez.\n\nTahmini test süresi: ~45 sn"
+  },
+  "twitch_key_label": {
+    "en": "Twitch Stream Key",
+    "tr": "Twitch Yayın Anahtarı"
+  },
+  "twitch_key_placeholder": {
+    "en": "live_xxxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "tr": "live_xxxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "twitch_key_hint": {
+    "en": "Found in Twitch Creator Dashboard → Settings → Stream. Used only locally, never stored or sent anywhere.",
+    "tr": "Twitch Yaratıcı Paneli → Ayarlar → Yayın'da bulunur. Yalnızca yerel olarak kullanılır; hiçbir yere kaydedilmez veya gönderilmez."
+  },
+  "twitch_mode_auto": {
+    "en": "Auto (nearest servers)",
+    "tr": "Otomatik (en yakın sunucular)"
+  },
+  "twitch_mode_manual": {
+    "en": "Manual (choose servers)",
+    "tr": "Manuel (sunucu seç)"
+  },
+  "twitch_run_btn": {
+    "en": "Run Twitch Test",
+    "tr": "Twitch Testini Çalıştır"
+  },
+  "twitch_warn_no_key": {
+    "en": "Enter your Twitch stream key to measure bandwidth. Without a key, only latency (RTT) is measured.",
+    "tr": "Bant genişliğini ölçmek için Twitch yayın anahtarınızı girin. Anahtar olmadan yalnızca gecikme (RTT) ölçülür."
+  },
+  "twitch_warn_live": {
+    "en": "Make sure you are NOT already streaming before running this test.",
+    "tr": "Bu testi çalıştırmadan önce ZATEN yayında olmadığınızdan emin olun."
+  },
+  "twitch_key_invalid": {
+    "en": "Invalid key format — a Twitch stream key must start with \"live_\". Did you paste the wrong text?",
+    "tr": "Geçersiz key formatı — Twitch yayın anahtarı \"live_\" ile başlamalı. Yanlış metni mi yapıştırdınız?"
+  },
+  "twitch_key_show": {
+    "en": "Show stream key",
+    "tr": "Yayın anahtarını göster"
+  },
+  "twitch_key_hide": {
+    "en": "Hide stream key",
+    "tr": "Yayın anahtarını gizle"
+  },
+  "twitch_col_server": {
+    "en": "Server",
+    "tr": "Sunucu"
+  },
+  "twitch_col_rtt": {
+    "en": "Latency",
+    "tr": "Gecikme"
+  },
+  "twitch_col_bandwidth": {
+    "en": "Bandwidth",
+    "tr": "Bant Genişliği"
+  },
+  "twitch_best_server": {
+    "en": "Best server",
+    "tr": "En iyi sunucu"
+  },
+  "twitch_unreachable": {
+    "en": "Unreachable",
+    "tr": "Ulaşılamadı"
+  },
+  "twitch_running": {
+    "en": "Testing Twitch servers…",
+    "tr": "Twitch sunucuları test ediliyor…"
+  },
+  "twitch_discovering": {
+    "en": "Loading server list…",
+    "tr": "Sunucu listesi yükleniyor…"
+  },
+  "nav_speedtest": {
+    "en": "Speed Test",
+    "tr": "Hız Testi"
+  },
+  "nav_ping": {
+    "en": "Latency",
+    "tr": "Gecikme"
+  },
+  "nav_ping_services": {
+    "en": "Services",
+    "tr": "Servisler"
+  },
+  "nav_ping_games": {
+    "en": "Game Servers",
+    "tr": "Oyun Sunucuları"
+  },
+  "nav_bufferbloat": {
+    "en": "Bufferbloat",
+    "tr": "Bufferbloat"
+  },
+  "nav_traceroute": {
+    "en": "Trace Route",
+    "tr": "Rota İzleme"
+  },
+  "nav_ping_standalone": {
+    "en": "Ping",
+    "tr": "Ping"
+  },
+  "nav_throttle": {
+    "en": "ISP Throttling",
+    "tr": "ISP Daraltma"
+  },
+  "nav_isp_intervention": {
+    "en": "ISP Intervention",
+    "tr": "ISP Müdahale"
+  },
+  "nav_smart": {
+    "en": "Advanced Diagnosis",
+    "tr": "Gelişmiş Tanı"
+  },
+  "nav_gaming_diagnosis": {
+    "en": "Gaming Diagnosis",
+    "tr": "Oyun Tanısı"
+  },
+  "nav_quick_diagnosis": {
+    "en": "Quick Diagnosis",
+    "tr": "Hızlı Tanı"
+  },
+  "tab_gaming_title": {
+    "en": "Gaming Diagnosis",
+    "tr": "Oyun Tanısı"
+  },
+  "tab_quick_title": {
+    "en": "Quick Diagnosis",
+    "tr": "Hızlı Tanı"
+  },
+  "tab_quick_sub": {
+    "en": "Fast network health overview",
+    "tr": "Hızlı ağ sağlığı özeti"
+  },
+  "quick_score_label": {
+    "en": "Network Score",
+    "tr": "Ağ Skoru"
+  },
+  "gaming_score_label": {
+    "en": "Gaming Score",
+    "tr": "Oyun Skoru"
+  },
+  "quick_scan_run_btn": {
+    "en": "Run Quick Scan",
+    "tr": "Hızlı Tarama Başlat"
+  },
+  "quick_scan_empty": {
+    "en": "Run a quick scan for a fast snapshot of your network health. Measures core metrics (latency, jitter, loss, speed, bufferbloat, Wi-Fi) plus IPv6, DNS and MTU. Pro tools like ISP throttle and interference detection are not included.\n\nEstimated time: ~2 min 30 sec",
+    "tr": "Ağ sağlığınızın hızlı bir görüntüsü için hızlı tarama başlatın. Temel metrikleri (gecikme, jitter, kayıp, hız, bufferbloat, Wi-Fi) ile IPv6, DNS ve MTU'yu ölçer. ISP kısıtlama ve müdahale tespiti gibi Pro araçlar dahil değildir.\n\nTahmini test süresi: ~2 dk 30 sn"
+  },
+  "tab_gaming_sub": {
+    "en": "Competitive gaming score — real-time FPS thresholds",
+    "tr": "Rekabetçi oyun skoru — gerçek zamanlı FPS eşikleri"
+  },
+  "gaming_scan_empty": {
+    "en": "Run a scan to get your competitive gaming score with real-time FPS thresholds. The gaming score is computed from latency, jitter, packet loss, bufferbloat and Wi-Fi using strict competitive standards. The scan also runs the full Quick Scan suite (speed, IPv6, DNS, MTU), which is why it takes a couple of minutes. Ideal for checking if your connection is ready for ranked play.\n\nEstimated time: ~2 min 30 sec",
+    "tr": "Gerçek-zamanlı FPS eşikleriyle rekabetçi oyun skorunuzu almak için tarama başlatın. Oyun skoru; gecikme, jitter, paket kaybı, bufferbloat ve Wi-Fi metriklerinden sıkı rekabetçi standartlarla hesaplanır. Tarama aynı zamanda tüm Hızlı Tarama paketini (hız, IPv6, DNS, MTU) da çalıştırır; bu yüzden birkaç dakika sürer. Bağlantınızın dereceli oyuna hazır olup olmadığını kontrol etmek için idealdir.\n\nTahmini test süresi: ~2 dk 30 sn"
+  },
+  "gaming_scan_run_btn": {
+    "en": "Run Gaming Scan",
+    "tr": "Oyun Taraması Başlat"
+  },
+  "synth_fps_competitive": {
+    "en": "Competitive Ready — pro-grade network for FPS.",
+    "tr": "Rekabete Hazır — FPS için pro seviye ağ."
+  },
+  "synth_fps_ranked": {
+    "en": "Ranked-capable, minor disadvantages possible.",
+    "tr": "Ranked oynanır, küçük dezavantajlar olabilir."
+  },
+  "synth_fps_hitreg": {
+    "en": "Hit-reg risk — inconsistent registration in fast FPS.",
+    "tr": "Hit-reg riski — hızlı FPS'te düzensiz vuruş kaydı."
+  },
+  "synth_fps_casual": {
+    "en": "Unsuitable for competitive FPS — casual play only.",
+    "tr": "Rekabetçi FPS için yetersiz, yalnızca casual oyunlara uygun."
+  },
+  "synth_fps_bridge_reflex": {
+    "en": "You may face reflex/peeker disadvantage in fast FPS (CS2/Valorant), but MOBA (LoL/Dota), strategy and co-op games will run fine.",
+    "tr": "Hızlı FPS'te (CS2/Valorant) reaksiyon/peeker dezavantajı yaşayabilirsin ama MOBA (LoL/Dota), strateji ve co-op oyunlar sorunsuz çalışır."
+  },
+  "synth_fps_bridge_allgood": {
+    "en": "Solid for most game types — MOBA, strategy and co-op run smoothly.",
+    "tr": "Çoğu oyun türü için yeterli — MOBA, strateji ve co-op sorunsuz çalışır."
+  },
+  "nav_oneclick": {
+    "en": "One-Click Test",
+    "tr": "Tek Tuşla Test"
+  },
+  "nav_tools": {
+    "en": "Tools",
+    "tr": "Araçlar"
+  },
+  "home_hero_title": {
+    "en": "Diagnose your connection in one click",
+    "tr": "Bağlantını tek tıkla teşhis et"
+  },
+  "home_hero_desc": {
+    "en": "Pick a one-click diagnosis: Quick for a fast network snapshot, Gaming for competitive FPS scoring, or Advanced for a full-scale expert report.",
+    "tr": "Tek tıkla bir tanı seç: hızlı ağ görünümü için Hızlı Tanı, rekabetçi FPS skoru için Oyun Tanısı, tam kapsamlı uzman raporu için Gelişmiş Tanı."
+  },
+  "home_quick_title": {
+    "en": "Quick tools",
+    "tr": "Hızlı araçlar"
+  },
+  "nav_premium": {
+    "en": "Premium Tools",
+    "tr": "Premium Araçlar"
+  },
+  "btn_run_full": {
+    "en": "Run Full Diagnostics",
+    "tr": "Tam Tanılama Yap"
+  },
+  "btn_run_speed": {
+    "en": "Run Speed Test",
+    "tr": "Hız Testi Yap"
+  },
+  "btn_run_services": {
+    "en": "Run Services Ping",
+    "tr": "Servis Ping Testi"
+  },
+  "btn_run_games": {
+    "en": "Run Game Servers Ping",
+    "tr": "Oyun Sunucularına Ping Testi"
+  },
+  "btn_run_bufferbloat": {
+    "en": "Run Bufferbloat Test",
+    "tr": "Bufferbloat Testi"
+  },
+  "btn_run_throttle": {
+    "en": "Start ISP Throttle Test",
+    "tr": "ISP Daraltma Testini Başlat"
+  },
+  "btn_run_isp_intervention": {
+    "en": "Start ISP Test",
+    "tr": "ISP Testini Başlat"
+  },
+  "btn_run_ipv6": {
+    "en": "Start IPv6 Test",
+    "tr": "IPv6 Testini Başlat"
+  },
+  "btn_running": {
+    "en": "Running…",
+    "tr": "Çalışıyor…"
+  },
+  "btn_next": {
+    "en": "Next",
+    "tr": "İleri"
+  },
+  "tab_dashboard_title": {
+    "en": "Dashboard",
+    "tr": "Gösterge Paneli"
+  },
+  "tab_dashboard_sub": {
+    "en": "Overview of your network health for gaming",
+    "tr": "Ağ sağlığınıza genel bakış ve test sonuçları"
+  },
+  "tab_speedtest_title": {
+    "en": "Speed Test",
+    "tr": "Hız Testi"
+  },
+  "tab_speedtest_sub": {
+    "en": "Real-time bandwidth measurement",
+    "tr": "Gerçek zamanlı bant genişliği ölçümü"
+  },
+  "tab_services_title": {
+    "en": "Ping · Services",
+    "tr": "Ping · Servisler"
+  },
+  "tab_services_sub": {
+    "en": "Latency to popular consumer services",
+    "tr": "Popüler servislere gecikme ölçümü"
+  },
+  "tab_games_title": {
+    "en": "Ping · Game Servers",
+    "tr": "Ping · Oyun Sunucuları"
+  },
+  "tab_games_sub": {
+    "en": "Latency to game server regions",
+    "tr": "Oyun sunucusu bölgelerine gecikme ölçümü"
+  },
+  "tab_bufferbloat_title": {
+    "en": "Bufferbloat",
+    "tr": "Bufferbloat"
+  },
+  "tab_bufferbloat_sub": {
+    "en": "Latency change under load",
+    "tr": "Yük altında gecikme (ping) dalgalanması"
+  },
+  "tab_traceroute_title": {
+    "en": "Trace Route",
+    "tr": "Rota İzleme"
+  },
+  "tab_traceroute_sub": {
+    "en": "Hop-by-hop path analysis",
+    "tr": "Hedef IP'ye trafik rotası analizi"
+  },
+  "tab_ping_title": {
+    "en": "Ping",
+    "tr": "Ping"
+  },
+  "tab_ping_sub": {
+    "en": "ICMP latency measurement",
+    "tr": "ICMP gecikme ölçümü"
+  },
+  "tab_throttle_title": {
+    "en": "ISP Throttling Test",
+    "tr": "ISP Daraltma Testi"
+  },
+  "tab_throttle_sub": {
+    "en": "Detect protocol-based bandwidth throttling",
+    "tr": "Protokol bazlı bant genişliği daraltması tespiti"
+  },
+  "tab_isp_intervention_title": {
+    "en": "ISP Intervention Tests",
+    "tr": "ISP Müdahale Testleri"
+  },
+  "tab_isp_intervention_sub": {
+    "en": "DNS hijacking, proxy, SNI filtering and MITM detection",
+    "tr": "DNS ele geçirme, proxy, SNI filtreleme ve MITM tespiti"
+  },
+  "tab_ipv6_title": {
+    "en": "IPv6 Diagnostics",
+    "tr": "IPv6 Tanılaması"
+  },
+  "tab_ipv6_sub": {
+    "en": "Connection status and ISP quality score",
+    "tr": "Bağlantı durumu ve ISP kalite skoru"
+  },
+  "tab_smart_title": {
+    "en": "Advanced Diagnosis",
+    "tr": "Gelişmiş Tanı"
+  },
+  "tab_smart_sub": {
+    "en": "Full-scale diagnostic engine — all tests, deterministic",
+    "tr": "Tam kapsamlı tanı motoru — tüm testler, deterministik"
+  },
+  "diag_overall": {
+    "en": "Overall Assessment",
+    "tr": "Genel Değerlendirme"
+  },
+  "diag_issues": {
+    "en": "Issues",
+    "tr": "Sorunlar"
+  },
+  "diag_suggestions": {
+    "en": "Suggestions",
+    "tr": "Öneriler"
+  },
+  "synth_general_title": {
+    "en": "Overall Score Summary",
+    "tr": "Genel Skor Özeti"
+  },
+  "synth_gaming_excellent": {
+    "en": "This connection is excellent for gaming — it ticks every box that matters for fast, fair online play.",
+    "tr": "Bu bağlantı oyun için mükemmel — hızlı ve adil çevrimiçi oyun için önemli olan her kutucuğu işaretliyor."
+  },
+  "synth_gaming_good": {
+    "en": "A good gaming connection overall, with one area that holds it back from being elite.",
+    "tr": "Genel olarak iyi bir oyun bağlantısı; yalnızca bir alan onu elit olmaktan alıkoyuyor."
+  },
+  "synth_gaming_fair": {
+    "en": "Playable, but a weak link means you'll feel a disadvantage in fast-paced or competitive games.",
+    "tr": "Oynanabilir, ama zayıf bir halka hızlı veya rekabetçi oyunlarda dezavantaj hissettirecek."
+  },
+  "synth_gaming_poor": {
+    "en": "This connection struggles with real-time gaming — expect lag, spikes or disconnects that affect play.",
+    "tr": "Bu bağlantı gerçek zamanlı oyunda zorlanıyor — oyunu etkileyen lag, spike veya kopmalar bekleyin."
+  },
+  "synth_g_low_ping": {
+    "en": "Low ping gives you fast reactions and accurate hit registration.",
+    "tr": "Düşük ping size hızlı tepki ve doğru vuruş kaydı sağlar."
+  },
+  "synth_g_stable": {
+    "en": "Stable timing (low jitter) keeps gameplay smooth with no random spikes.",
+    "tr": "Kararlı zamanlama (düşük jitter) oyunu pürüzsüz tutar, rastgele spike olmaz."
+  },
+  "synth_g_no_bloat": {
+    "en": "No bufferbloat means your ping stays low even while others use the network.",
+    "tr": "Bufferbloat olmaması, başkaları ağı kullanırken bile ping'inizin düşük kalması demek."
+  },
+  "synth_g_no_loss": {
+    "en": "Zero packet loss means no rubber-banding or lost inputs.",
+    "tr": "Sıfır paket kaybı, geri-seküme veya kayıp girdi olmaması demek."
+  },
+  "synth_g_weak_latency": {
+    "en": "Latency is the weak point here — it's the main thing limiting your competitive edge.",
+    "tr": "Buradaki zayıf nokta gecikme — rekabetçi avantajınızı sınırlayan ana etken."
+  },
+  "synth_g_weak_jitter": {
+    "en": "Jitter is the weak point — inconsistent timing causes the spikes you feel mid-game.",
+    "tr": "Zayıf nokta jitter — tutarsız zamanlama, oyun ortasında hissettiğiniz spike'lara neden olur."
+  },
+  "synth_g_weak_bloat": {
+    "en": "Bufferbloat is the weak point — your ping spikes whenever the line gets busy.",
+    "tr": "Zayıf nokta bufferbloat — hat meşgul olduğunda ping'iniz fırlıyor."
+  },
+  "synth_g_weak_loss": {
+    "en": "Packet loss is the weak point — it causes the stutters and rubber-banding in play.",
+    "tr": "Zayıf nokta paket kaybı — oyundaki takılma ve geri-sekümelere neden oluyor."
+  },
+  "synth_g_verdict_competitive": {
+    "en": "Bottom line: ready for ranked and competitive play at any level.",
+    "tr": "Sonuç: her seviyede dereceli ve rekabetçi oyuna hazır."
+  },
+  "synth_g_verdict_casual": {
+    "en": "Bottom line: great for casual and most online games; top-tier ranked play may expose the weak link.",
+    "tr": "Sonuç: günlük ve çoğu çevrimiçi oyun için harika; en üst seviye dereceli oyun zayıf halkayı ortaya çıkarabilir."
+  },
+  "synth_g_verdict_struggle": {
+    "en": "Bottom line: fine for slow-paced games, but fast competitive titles will feel frustrating.",
+    "tr": "Sonuç: yavaş tempolu oyunlar için iyi, ama hızlı rekabetçi oyunlar can sıkıcı hissedilecek."
+  },
+  "synth_general_excellent": {
+    "en": "A top-tier all-round connection — fast, stable and clean across every dimension we tested.",
+    "tr": "Üst düzey, her yönüyle iyi bir bağlantı — test ettiğimiz her boyutta hızlı, kararlı ve temiz."
+  },
+  "synth_general_good": {
+    "en": "A solid all-round connection that handles everyday needs comfortably.",
+    "tr": "Günlük ihtiyaçları rahat karşılayan sağlam, her yönüyle iyi bir bağlantı."
+  },
+  "synth_general_fair": {
+    "en": "Usable for everyday tasks, but a few weak spots are worth addressing.",
+    "tr": "Günlük işler için kullanılabilir, ama ele alınmaya değer birkaç zayıf nokta var."
+  },
+  "synth_general_poor": {
+    "en": "Several areas need attention — the connection has real limitations for modern use.",
+    "tr": "Birkaç alan dikkat gerektiriyor — bağlantının modern kullanım için gerçek kısıtları var."
+  },
+  "synth_n_fast": {
+    "en": "Download speed has plenty of headroom for 4K streaming, large downloads and many devices.",
+    "tr": "İndirme hızı; 4K yayın, büyük indirmeler ve çok sayıda cihaz için bol pay sunuyor."
+  },
+  "synth_n_slow": {
+    "en": "Download speed is below modern norms and may bottleneck streaming or multi-user households.",
+    "tr": "İndirme hızı modern normların altında; yayın veya çok-kullanıcılı evlerde darboğaz yaratabilir."
+  },
+  "synth_n_asymmetric": {
+    "en": "Upload is much lower than download — great for consuming content, limited for live streaming or large uploads.",
+    "tr": "Yükleme, indirmeden çok düşük — içerik tüketmek için harika, canlı yayın veya büyük yükleme için sınırlı."
+  },
+  "synth_n_shared_ok": {
+    "en": "Low bufferbloat means the connection stays responsive even when fully loaded.",
+    "tr": "Düşük bufferbloat, bağlantının tam yüklüyken bile hızlı kalması demek."
+  },
+  "synth_n_bloat": {
+    "en": "Bufferbloat under load drags down responsiveness when the line is busy.",
+    "tr": "Yük altında bufferbloat, hat meşgulken hızlı yanıtı düşürüyor."
+  },
+  "synth_n_no_throttle": {
+    "en": "No protocol throttling — all traffic types run freely.",
+    "tr": "Protokol daraltması yok — tüm trafik türleri serbestçe çalışıyor."
+  },
+  "synth_n_throttle": {
+    "en": "Your ISP throttles certain protocols — a VPN may be needed for full speed on them.",
+    "tr": "ISP'niz bazı protokolleri daraltıyor — onlarda tam hız için VPN gerekebilir."
+  },
+  "synth_n_clean": {
+    "en": "No ISP interference — your traffic reaches the internet untouched and secure.",
+    "tr": "ISP müdahalesi yok — trafiğiniz internete dokunulmadan ve güvenli ulaşıyor."
+  },
+  "synth_n_interference": {
+    "en": "ISP interference was detected — worth reviewing for privacy and access.",
+    "tr": "ISP müdahalesi tespit edildi — gizlilik ve erişim açısından gözden geçirmeye değer."
+  },
+  "synth_n_no_ipv6": {
+    "en": "No IPv6 yet — fine today, but it's the internet's long-term direction.",
+    "tr": "Henüz IPv6 yok — bugün sorun değil, ama internetin uzun vadeli yönü."
+  },
+  "synth_n_wifi_weak": {
+    "en": "Wi-Fi signal is on the weak side and may cap your real-world speeds.",
+    "tr": "Wi-Fi sinyali zayıf tarafta ve gerçek hızlarınızı sınırlayabilir."
+  },
+  "diag_empty": {
+    "en": "Run a full diagnostic to analyze your connection across all available modules. Includes core metrics plus Pro-grade checks: ISP throttling, traffic interference, CGNAT, VoIP quality and more. Produces a complete network report you can export as PDF.\n\nEstimated time: ~4 min 30 sec",
+    "tr": "Bağlantınızı mevcut tüm modüllerde analiz etmek için tam tanılama çalıştırın. Temel metriklerin yanı sıra Pro seviye kontroller içerir: ISP kısıtlama, trafik müdahalesi, CGNAT, VoIP kalitesi ve daha fazlası. PDF olarak dışa aktarabileceğiniz eksiksiz bir ağ raporu üretir.\n\nTahmini test süresi: ~4 dk 30 sn"
+  },
+  "diag_run_btn": {
+    "en": "Run Full Diagnostic",
+    "tr": "Tam Tanılama Çalıştır"
+  },
+  "diag_modules_title": {
+    "en": "Module Breakdown",
+    "tr": "Modül Analizi"
+  },
+  "pdf_report_title": {
+    "en": "Network Diagnostic Report",
+    "tr": "Ağ Tanılama Raporu"
+  },
+  "pdf_synthesis_title": {
+    "en": "Overall Assessment",
+    "tr": "Genel Değerlendirme"
+  },
+  "pdf_group_positive": {
+    "en": "Strengths",
+    "tr": "Güçlü Yönler"
+  },
+  "pdf_group_neutral": {
+    "en": "Watch Points",
+    "tr": "Dikkat Edilecekler"
+  },
+  "pdf_group_negative": {
+    "en": "Concerns",
+    "tr": "Sorunlar"
+  },
+  "pdf_lbl_measurements": {
+    "en": "Measurements",
+    "tr": "Ölçümler"
+  },
+  "pdf_lbl_assessment": {
+    "en": "Assessment",
+    "tr": "Değerlendirme"
+  },
+  "pdf_lbl_download": {
+    "en": "Download",
+    "tr": "İndirme"
+  },
+  "pdf_lbl_upload": {
+    "en": "Upload",
+    "tr": "Yükleme"
+  },
+  "pdf_lbl_ping": {
+    "en": "Ping",
+    "tr": "Ping"
+  },
+  "pdf_lbl_server": {
+    "en": "Server",
+    "tr": "Sunucu"
+  },
+  "pdf_lbl_idle_lat": {
+    "en": "Idle latency",
+    "tr": "Boşta gecikme"
+  },
+  "pdf_lbl_loaded_lat": {
+    "en": "Loaded latency",
+    "tr": "Yük altı gecikme"
+  },
+  "pdf_lbl_delta_lat": {
+    "en": "Latency increase",
+    "tr": "Gecikme artışı"
+  },
+  "pdf_lbl_grade": {
+    "en": "Grade",
+    "tr": "Not"
+  },
+  "pdf_lbl_baseline": {
+    "en": "Baseline (HTTPS)",
+    "tr": "Temel (HTTPS)"
+  },
+  "pdf_lbl_connectivity": {
+    "en": "Connectivity",
+    "tr": "Bağlantı"
+  },
+  "pdf_lbl_ipv6_score": {
+    "en": "IPv6 score",
+    "tr": "IPv6 skoru"
+  },
+  "pdf_lbl_signal": {
+    "en": "Signal",
+    "tr": "Sinyal"
+  },
+  "pdf_lbl_band": {
+    "en": "Band",
+    "tr": "Bant"
+  },
+  "pdf_lbl_connection": {
+    "en": "Connection",
+    "tr": "Bağlantı"
+  },
+  "pdf_lbl_targets": {
+    "en": "Targets",
+    "tr": "Hedefler"
+  },
+  "pdf_unreachable": {
+    "en": "unreachable",
+    "tr": "erişilemedi"
+  },
+  "pdf_lbl_segments": {
+    "en": "Segments",
+    "tr": "Segmentler"
+  },
+  "pdf_lbl_segment": {
+    "en": "Segment",
+    "tr": "Segment"
+  },
+  "pdf_lbl_idle": {
+    "en": "Idle",
+    "tr": "Boşta"
+  },
+  "pdf_lbl_loaded": {
+    "en": "Loaded",
+    "tr": "Yüklü"
+  },
+  "pdf_lbl_latency_chart": {
+    "en": "Latency Under Load",
+    "tr": "Yük Altı Gecikme"
+  },
+  "pdf_lbl_checks": {
+    "en": "Interference Checks",
+    "tr": "Müdahale Kontrolleri"
+  },
+  "pdf_export_btn": {
+    "en": "Export PDF",
+    "tr": "PDF İndir"
+  },
+  "pdf_export_saved": {
+    "en": "Report saved",
+    "tr": "Rapor kaydedildi"
+  },
+  "pdf_export_error": {
+    "en": "Could not save report",
+    "tr": "Rapor kaydedilemedi"
+  },
+  "test_warning_external_traffic": {
+    "en": "⚠️ WARNING: For accurate measurement, close all internet-using apps (browser, downloads, cloud sync, games, streaming) before starting. Temporarily turning off other devices on the same network (phone, TV, console) is strongly recommended.",
+    "tr": "⚠️ UYARI: Doğru ölçüm için testi başlatmadan önce interneti kullanan tüm uygulamaları (tarayıcı, indirme, bulut senkronu, oyun, yayın) kapatın. Aynı ağa bağlı diğer cihazların (telefon, TV, konsol) da geçici olarak kapatılması şiddetle önerilir."
+  },
+  "bloat_intro_desc": {
+    "en": "Measures how much your latency rises when the connection is under load — the main cause of lag spikes during downloads or uploads. Tests idle, download, upload and bidirectional phases.\n\nEstimated time: ~35 sec",
+    "tr": "Bağlantı yük altındayken gecikmenizin ne kadar arttığını ölçer — indirme/yükleme sırasındaki lag spike'larının ana nedeni. Boşta, indirme, yükleme ve çift yön fazlarını test eder.\n\nTahmini test süresi: ~35 sn"
+  },
+  "throttle_intro_desc": {
+    "en": "Detects whether your ISP slows down specific protocols. Compares baseline HTTPS speed against BitTorrent, QUIC, WireGuard and OpenVPN to reveal protocol-based throttling.\n\nEstimated time: ~1 min 20 sec",
+    "tr": "ISP'nizin belirli protokolleri yavaşlatıp yavaşlatmadığını tespit eder. Temel HTTPS hızını BitTorrent, QUIC, WireGuard ve OpenVPN ile karşılaştırarak protokol bazlı daraltmayı ortaya çıkarır.\n\nTahmini test süresi: ~1 dk 20 sn"
+  },
+  "isp_intro_desc": {
+    "en": "Checks whether your ISP interferes with your traffic: DNS hijacking, transparent proxy, SNI filtering, TLS MITM, DoH/DoT blocking, DNSSEC, ECH and more. Reveals hidden interception and access restrictions.\n\nEstimated time: ~10 sec",
+    "tr": "ISP'nizin trafiğinize müdahale edip etmediğini kontrol eder: DNS hijacking, şeffaf proxy, SNI filtreleme, TLS MITM, DoH/DoT engelleme, DNSSEC, ECH ve daha fazlası. Gizli müdahale ve erişim kısıtlamalarını ortaya çıkarır.\n\nTahmini test süresi: ~10 sn"
+  },
+  "ipv6_intro_desc": {
+    "en": "Evaluates your IPv6 readiness: native vs tunneled connectivity and ISP IPv6 quality — increasingly important for modern, future-proof internet.\n\nEstimated time: ~15 sec",
+    "tr": "IPv6 hazırlığınızı değerlendirir: yerel/tünelli bağlantı ve ISP IPv6 kalitesi — modern, geleceğe hazır internet için giderek daha önemli.\n\nTahmini test süresi: ~15 sn"
+  },
+  "dns_intro_desc": {
+    "en": "Benchmarks DNS resolvers across UDP, DoT and DoH protocols. Compares response times and reliability to help you pick the fastest, most private DNS.\n\nEstimated time: ~10 sec",
+    "tr": "DNS çözümleyicilerini UDP, DoT ve DoH protokollerinde kıyaslar. En hızlı ve en gizli DNS'i seçmenize yardımcı olmak için yanıt sürelerini ve güvenilirliği karşılaştırır.\n\nTahmini test süresi: ~10 sn"
+  },
+  "wifi_scan_intro_desc": {
+    "en": "Scans nearby networks to map channel congestion and recommends the best channel for your router — reduces interference and improves Wi-Fi stability.\n\nEstimated time: ~4 sec",
+    "tr": "Yakın ağları tarayarak kanal kalabalığını haritalar ve router'ınız için en iyi kanalı önerir — paraziti azaltır ve Wi-Fi kararlılığını artırır.\n\nTahmini test süresi: ~4 sn"
+  },
+  "diag_status_excellent": {
+    "en": "Excellent",
+    "tr": "Mükemmel"
+  },
+  "grade_status_Aplus": {
+    "en": "Excellent",
+    "tr": "Mükemmel"
+  },
+  "grade_status_A": {
+    "en": "Very Good",
+    "tr": "Çok İyi"
+  },
+  "grade_status_B": {
+    "en": "Good",
+    "tr": "İyi"
+  },
+  "grade_status_C": {
+    "en": "Fair",
+    "tr": "Orta"
+  },
+  "grade_status_D": {
+    "en": "Poor",
+    "tr": "Zayıf"
+  },
+  "grade_status_F": {
+    "en": "Bad",
+    "tr": "Kötü"
+  },
+  "diag_status_good": {
+    "en": "Good",
+    "tr": "İyi"
+  },
+  "diag_status_fair": {
+    "en": "Fair",
+    "tr": "Orta"
+  },
+  "diag_status_poor": {
+    "en": "Poor",
+    "tr": "Zayıf"
+  },
+  "diag_status_critical": {
+    "en": "Critical",
+    "tr": "Kritik"
+  },
+  "diag_overall_excellent": {
+    "en": "Your connection is in excellent shape across all measured areas.",
+    "tr": "Bağlantınız ölçülen tüm alanlarda mükemmel durumda."
+  },
+  "diag_overall_good": {
+    "en": "Your connection is solid. Minor improvements possible but no real issues.",
+    "tr": "Bağlantınız sağlam. Küçük iyileştirmeler mümkün ama gerçek sorun yok."
+  },
+  "diag_overall_fair": {
+    "en": "Your connection is usable but has weak spots worth addressing.",
+    "tr": "Bağlantınız kullanılabilir ama ele alınmaya değer zayıf noktaları var."
+  },
+  "diag_overall_poor": {
+    "en": "Your connection has notable problems affecting real-time use.",
+    "tr": "Bağlantınızda gerçek zamanlı kullanımı etkileyen belirgin sorunlar var."
+  },
+  "diag_overall_critical": {
+    "en": "Your connection has critical issues that need attention.",
+    "tr": "Bağlantınızda dikkat gerektiren kritik sorunlar var."
+  },
+  "diag_mod_latency": {
+    "en": "Latency",
+    "tr": "Gecikme"
+  },
+  "diag_mod_jitter": {
+    "en": "Jitter",
+    "tr": "Jitter"
+  },
+  "diag_mod_loss": {
+    "en": "Packet Loss",
+    "tr": "Paket Kaybı"
+  },
+  "diag_mod_bufferbloat": {
+    "en": "Bufferbloat",
+    "tr": "Bufferbloat"
+  },
+  "diag_mod_wifi": {
+    "en": "Wi-Fi Signal",
+    "tr": "Wi-Fi Sinyali"
+  },
+  "diag_mod_speed": {
+    "en": "Throughput",
+    "tr": "Bant Genişliği"
+  },
+  "diag_mod_throttle": {
+    "en": "ISP Throttling",
+    "tr": "ISP Daraltma"
+  },
+  "diag_mod_isp_intervention": {
+    "en": "ISP Interference",
+    "tr": "ISP Müdahale"
+  },
+  "diag_mod_ipv6": {
+    "en": "IPv6",
+    "tr": "IPv6"
+  },
+  "insight_latency_competitive": {
+    "en": "Ping is under 20 ms — a round-trip to the server takes less than 1/50th of a second. In practice: in CS2 or Valorant, when you and an opponent fire at the same instant, your shot reaches the server first.",
+    "tr": "Ping 20 ms'nin altında — sunucuya gidip dönüş saniyenin 50'de birinden az sürüyor. Pratikte: CS2 veya Valorant'ta rakibinizle aynı anda ateş ettiğinizde sizin merminiz sunucuya önce ulaşır."
+  },
+  "insight_latency_realtime": {
+    "en": "At this delay, real-time apps feel instant: in a Zoom/Teams call nobody talks over each other, and cloud gaming (GeForce Now, Xbox Cloud) responds as if the game ran locally.",
+    "tr": "Bu gecikmede gerçek zamanlı uygulamalar anında hissedilir: Zoom/Teams görüşmesinde kimse birbirinin sözünü kesmez, bulut oyun (GeForce Now, Xbox Cloud) oyun yereldeymiş gibi tepki verir."
+  },
+  "insight_latency_good_gaming": {
+    "en": "Ping is 20-40 ms — still excellent for online play. You'd only feel a slight edge loss against pro-level opponents sitting under 15 ms; for everyone else it's imperceptible.",
+    "tr": "Ping 20-40 ms — çevrimiçi oyun için hala mükemmel. Yalnızca 15 ms altındaki profesyonel rakiplere karşı hafif dezavantaj hissedersiniz; diğer herkese karşı fark edilmez."
+  },
+  "insight_latency_casual_ok": {
+    "en": "Ping is 40-80 ms — perfectly fine for casual gaming, streaming and browsing. A web page or game action still responds in well under a tenth of a second.",
+    "tr": "Ping 40-80 ms — günlük oyun, yayın ve gezinme için gayet iyi. Bir web sayfası veya oyun aksiyonu hala saniyenin onda birinden çok daha hızlı tepki verir."
+  },
+  "insight_latency_fps_disadvantage": {
+    "en": "In twitch shooters (CS2, Valorant) or MOBAs (LoL), this 40-80 ms means you see enemies a fraction later than someone on 20 ms — enough to lose close peek-and-shoot duels.",
+    "tr": "Refleks nişancılarında (CS2, Valorant) veya MOBA'larda (LoL) bu 40-80 ms, düşmanları 20 ms'deki birinden bir an sonra görmeniz demek — yakın köşe-ateş düellolarını kaybettirebilir."
+  },
+  "insight_latency_browsing_ok": {
+    "en": "For everyday use this delay is harmless: web pages, YouTube and downloads behave normally — the lag only matters for real-time interaction.",
+    "tr": "Günlük kullanımda bu gecikme zararsız: web sayfaları, YouTube ve indirmeler normal çalışır — gecikme yalnızca gerçek zamanlı etkileşimde önemlidir."
+  },
+  "insight_latency_gaming_laggy": {
+    "en": "Ping is 80-150 ms — online games feel sluggish: you press a button and the action happens a noticeable beat later, and players may appear to teleport ('rubber-banding').",
+    "tr": "Ping 80-150 ms — çevrimiçi oyunlar ağır hissedilir: bir tuşa basıyorsunuz, aksiyon belirgin bir an sonra gerçekleşiyor ve oyuncular ışınlanıyormuş gibi görünebilir ('rubber-banding')."
+  },
+  "insight_latency_closer_server": {
+    "en": "Picking a game server in a closer region, or switching from Wi-Fi to a wired cable, would typically cut this delay in half.",
+    "tr": "Daha yakın bir bölgedeki oyun sunucusunu seçmek veya Wi-Fi'den kablolu bağlantıya geçmek bu gecikmeyi genelde yarıya indirir."
+  },
+  "insight_latency_realtime_unusable": {
+    "en": "Ping is over 150 ms — every action lags by more than a sixth of a second. Competitive gaming is impractical and video calls drift out of sync (you talk over each other).",
+    "tr": "Ping 150 ms'nin üzerinde — her aksiyon saniyenin altıda birinden fazla gecikiyor. Rekabetçi oyun zor, video görüşmeleri senkrondan çıkar (birbirinizin sözünü kesersiniz)."
+  },
+  "insight_latency_check_route": {
+    "en": "This much delay usually means a distant server or a congested route. Check whether you're connecting to a far region, or contact your ISP about routing/peering.",
+    "tr": "Bu kadar gecikme genelde uzak sunucu veya tıkalı yol demektir. Uzak bir bölgeye bağlanıp bağlanmadığınızı kontrol edin veya yönlendirme/peering için ISP'nizle görüşün."
+  },
+  "insight_jitter_stable": {
+    "en": "Jitter is under 3 ms — packets arrive at very even intervals (RFC 3550). Think of it as a steady drumbeat: each piece of data lands right on time, so nothing stutters.",
+    "tr": "Jitter 3 ms'nin altında — paketler çok düzenli aralıklarla geliyor (RFC 3550). Sabit bir davul ritmi gibi düşünün: her veri parçası tam zamanında gelir, hiçbir şey takılmaz."
+  },
+  "insight_jitter_voip_ok": {
+    "en": "Voice and video stay crystal clear: no robotic/choppy audio on calls, and game audio cues line up exactly with the action.",
+    "tr": "Ses ve video tertemiz kalır: görüşmelerde robotik/kesik ses olmaz, oyun ses ipuçları aksiyonla tam örtüşür."
+  },
+  "insight_jitter_acceptable": {
+    "en": "Jitter is 3-10 ms — the small timing wobble is within a comfortable range for gaming and streaming.",
+    "tr": "Jitter 3-10 ms — küçük zamanlama sapması oyun ve yayın için rahat bir aralıkta."
+  },
+  "insight_jitter_minor_spikes": {
+    "en": "You might hit a rare, brief hiccup — like one syllable clipping in a long call — but nothing that disrupts normal use.",
+    "tr": "Nadiren kısa bir takılma yaşayabilirsiniz — uzun bir görüşmede tek hecenin kesilmesi gibi — ama normal kullanımı bozan bir şey değil."
+  },
+  "insight_jitter_noticeable": {
+    "en": "Jitter is 10-20 ms — the arrival timing varies enough that fast games get occasional lag spikes even when average ping looks fine.",
+    "tr": "Jitter 10-20 ms — varış zamanlaması, ortalama ping iyi görünse bile hızlı oyunlarda ara sıra lag spike oluşturacak kadar değişiyor."
+  },
+  "insight_jitter_use_ethernet": {
+    "en": "Wi-Fi is the usual culprit for jitter (interference, distance). A wired Ethernet cable almost always smooths it out.",
+    "tr": "Jitter'ın olağan suçlusu Wi-Fi'dır (parazit, mesafe). Kablolu Ethernet neredeyse her zaman bunu düzeltir."
+  },
+  "insight_jitter_check_qos": {
+    "en": "Another device hogging the line (a big download, a 4K stream) can inflate jitter. Enabling QoS on your router prioritizes time-sensitive traffic.",
+    "tr": "Hattı meşgul eden başka bir cihaz (büyük indirme, 4K yayın) jitter'ı artırabilir. Router'da QoS açmak zaman-hassas trafiğe öncelik verir."
+  },
+  "insight_jitter_severe": {
+    "en": "Jitter is over 20 ms — timing is all over the place. Calls break up into robotic fragments and games feel jerky regardless of your average ping.",
+    "tr": "Jitter 20 ms'nin üzerinde — zamanlama tamamen dağınık. Görüşmeler robotik parçalara bölünür, oyunlar ortalama ping'inizden bağımsız olarak sarsıntılı hissedilir."
+  },
+  "insight_loss_none": {
+    "en": "Zero packet loss — perfect link integrity for all real-time applications.",
+    "tr": "Sıfır paket kaybı — tüm gerçek zamanlı uygulamalar için mükemmel bağlantı bütünlüğü."
+  },
+  "insight_loss_negligible": {
+    "en": "Packet loss is negligible and has no practical impact (ITU-T G.1010).",
+    "tr": "Paket kaybı ihmal edilebilir ve pratik etkisi yok (ITU-T G.1010)."
+  },
+  "insight_loss_minor": {
+    "en": "Minor packet loss — mostly unnoticeable but may cause rare retransmits.",
+    "tr": "Hafif paket kaybı — çoğunlukla fark edilmez ama nadir yeniden iletime yol açabilir."
+  },
+  "insight_loss_disruptive": {
+    "en": "Packet loss at this level causes rubber-banding and stutter in online games.",
+    "tr": "Bu seviyedeki paket kaybı, çevrimiçi oyunlarda kayma ve takılmaya yol açar."
+  },
+  "insight_loss_check_link": {
+    "en": "Inspect cabling and Wi-Fi quality; loss often comes from a marginal physical link.",
+    "tr": "Kablo ve Wi-Fi kalitesini inceleyin; kayıp genelde zayıf fiziksel bağlantıdan gelir."
+  },
+  "insight_loss_severe": {
+    "en": "Severe packet loss makes the connection unreliable for real-time use.",
+    "tr": "Ciddi paket kaybı, bağlantıyı gerçek zamanlı kullanım için güvenilmez kılar."
+  },
+  "insight_loss_contact_isp": {
+    "en": "Restart your router; if loss persists, contact your ISP — it likely indicates a line fault.",
+    "tr": "Router'ı yeniden başlatın; kayıp sürüyorsa ISP'nizle iletişime geçin — muhtemelen hat arızası."
+  },
+  "insight_bloat_low": {
+    "en": "Latency stays low even under heavy load — excellent queue management.",
+    "tr": "Yoğun yük altında bile gecikme düşük kalıyor — mükemmel kuyruk yönetimi."
+  },
+  "insight_bloat_shared_ok": {
+    "en": "You can game or video-call smoothly while others download on the same network.",
+    "tr": "Başkaları aynı ağda indirme yaparken bile sorunsuz oyun/görüşme yapabilirsiniz."
+  },
+  "insight_bloat_mild_ok": {
+    "en": "Bufferbloat is mild and unnoticeable in most everyday use.",
+    "tr": "Bufferbloat hafif ve günlük kullanımın çoğunda fark edilmez."
+  },
+  "insight_bloat_heavy_upload": {
+    "en": "Heavy uploads (cloud backup, large file sends) may add a small, brief delay.",
+    "tr": "Ağır yüklemeler (bulut yedek, büyük dosya gönderimi) küçük ve kısa bir gecikme ekleyebilir."
+  },
+  "insight_bloat_noticeable": {
+    "en": "Under load, latency rises enough to cause lag spikes during downloads/uploads.",
+    "tr": "Yük altında gecikme, indirme/yükleme sırasında lag spike'a yol açacak kadar yükselir."
+  },
+  "insight_bloat_enable_sqm": {
+    "en": "Enable SQM/QoS on your router to keep latency low when the link is busy.",
+    "tr": "Hat meşgulken gecikmeyi düşük tutmak için router'ınızda SQM/QoS etkinleştirin."
+  },
+  "insight_bloat_severe": {
+    "en": "Severe bufferbloat — the connection becomes nearly unusable for real-time apps under load.",
+    "tr": "Ciddi bufferbloat — yük altında bağlantı gerçek zamanlı uygulamalar için neredeyse kullanılamaz."
+  },
+  "insight_wifi_ethernet": {
+    "en": "You're on a wired (Ethernet) connection — the most stable option. No interference, no signal drops, no slowdown from walls or distance.",
+    "tr": "Kablolu (Ethernet) bağlantıdasınız — en kararlı seçenek. Parazit yok, sinyal düşüşü yok, duvar veya mesafeden yavaşlama yok."
+  },
+  "insight_wifi_strong": {
+    "en": "Wi-Fi signal is strong (70%+). In practice: you can stream 4K and game without the connection re-sending data, so speeds stay steady.",
+    "tr": "Wi-Fi sinyali güçlü (%70+). Pratikte: bağlantı veriyi yeniden göndermeden 4K yayın izleyip oyun oynayabilirsiniz, böylece hızlar kararlı kalır."
+  },
+  "insight_wifi_fair": {
+    "en": "Wi-Fi signal is fair (45-70%). It works, but at peak times — or when the microwave runs or someone streams in another room — speed can dip and video may briefly buffer.",
+    "tr": "Wi-Fi sinyali orta (%45-70). Çalışır, ama yoğun saatlerde — ya da mikrodalga çalışırken veya başka odada biri yayın izlerken — hız düşebilir ve video kısaca takılabilir."
+  },
+  "insight_wifi_move_closer": {
+    "en": "Moving a few meters closer to the router, or removing a wall/obstacle between you and it, would noticeably steady the signal.",
+    "tr": "Router'a birkaç metre yaklaşmak veya aranızdaki bir duvarı/engeli kaldırmak sinyali belirgin şekilde kararlılaştırır."
+  },
+  "insight_wifi_weak": {
+    "en": "Wi-Fi signal is weak (under 45%). In practice: pages load slowly, video drops to lower quality, and the connection may cut out when you move around.",
+    "tr": "Wi-Fi sinyali zayıf (%45 altı). Pratikte: sayfalar yavaş yükler, video düşük kaliteye düşer ve hareket ettiğinizde bağlantı kopabilir."
+  },
+  "insight_wifi_reposition": {
+    "en": "Move the router to a central, open spot, add a mesh node/repeater for the far rooms, or run an Ethernet cable for anything important.",
+    "tr": "Router'ı merkezi ve açık bir yere taşıyın, uzak odalar için mesh/repeater ekleyin veya önemli işler için Ethernet kablosu çekin."
+  },
+  "insight_wifi_co_channel_clean": {
+    "en": "Channel is clean — no co-channel neighbors detected.",
+    "tr": "Kanal temiz — aynı kanalda çakışan komşu yok."
+  },
+  "insight_wifi_co_channel_moderate": {
+    "en": "1-2 co-channel neighbors — light interference.",
+    "tr": "1-2 co-channel komşu — hafif girişim."
+  },
+  "insight_wifi_co_channel_heavy": {
+    "en": "3+ co-channel neighbors — heavy interference, throughput may drop.",
+    "tr": "3+ co-channel komşu — yoğun girişim, hız düşebilir."
+  },
+  "insight_wifi_band_upgrade_hint": {
+    "en": "Connected on 2.4 GHz — if 5/6 GHz is available it usually performs better.",
+    "tr": "2.4 GHz'e bağlısın — 5/6 GHz varsa genelde daha iyi performans verir."
+  },
+  "insight_wifi_width_dense": {
+    "en": "Wide channel (80/160 MHz) in a crowded environment — consider 20 MHz to reduce interference.",
+    "tr": "Kalabalık ortamda geniş kanal (80/160 MHz) — girişimi azaltmak için 20 MHz'e geçmeyi deneyin."
+  },
+  "insight_wifi_6ghz_non_psc": {
+    "en": "6 GHz AP is on a non-PSC channel — some clients may fail to discover it. Switch to a PSC channel (5, 21, 37, 53, 69...).",
+    "tr": "6 GHz AP, PSC dışı kanalda — bazı cihazlar AP'yi bulamayabilir. PSC kanala geçin (5, 21, 37, 53, 69...)."
+  },
+  "insight_wifi_passive_scan_note": {
+    "en": "Based on passive RF scan (RSSI + neighbor count). Real throughput also depends on retransmissions, hidden nodes and non-Wi-Fi RF, which passive scan cannot detect.",
+    "tr": "Pasif RF taraması temelli (RSSI + komşu sayısı). Gerçek verim; yeniden iletim, gizli düğüm ve Wi-Fi dışı RF parazitine de bağlıdır — bunlar pasif taramayla görülemez."
+  },
+  "insight_speed_fast": {
+    "en": "Download is 100+ Mbps — plenty of headroom. You could stream Netflix in 4K (needs ~25 Mbps) on three TVs at once and still download a game smoothly.",
+    "tr": "İndirme 100+ Mbps — bol pay var. Aynı anda üç TV'de 4K Netflix izleyip (~25 Mbps gerekir) yine de pürüzsüz oyun indirebilirsiniz."
+  },
+  "insight_speed_good": {
+    "en": "Download is 50-100 Mbps — solid. Comfortable for 4K streaming, video calls and a couple of people using the internet at the same time.",
+    "tr": "İndirme 50-100 Mbps — sağlam. 4K yayın, video görüşme ve aynı anda birkaç kişinin internet kullanması için rahat."
+  },
+  "insight_speed_moderate": {
+    "en": "Download is 25-50 Mbps — fine for one 4K stream or a few HD streams. It can feel tight if several people stream or download at once.",
+    "tr": "İndirme 25-50 Mbps — tek bir 4K yayın ya da birkaç HD yayın için yeterli. Aynı anda birkaç kişi yayın/indirme yaparsa sıkışabilir."
+  },
+  "insight_speed_low": {
+    "en": "Download is under 25 Mbps — below modern broadband norms (FCC defines broadband as 100 Mbps). A single 4K stream may buffer; HD is the realistic ceiling.",
+    "tr": "İndirme 25 Mbps altında — modern genişbant normlarının altında (FCC genişbandı 100 Mbps tanımlar). Tek bir 4K yayın takılabilir; gerçekçi tavan HD'dir."
+  },
+  "insight_speed_upload_low": {
+    "en": "Upload is under 10 Mbps — the slower lane. Sharing large files or backing up to the cloud will be slow, and a 1080p video call may look soft on the other end.",
+    "tr": "Yükleme 10 Mbps altında — yavaş şerit. Büyük dosya paylaşımı veya buluta yedekleme yavaş olur, karşı tarafta 1080p görüntülü görüşme bulanık görünebilir."
+  },
+  "insight_speed_asymmetric": {
+    "en": "Your upload is far lower than your download — typical of cable/DSL plans. Fine for normal use, but live streaming (Twitch/YouTube) and large uploads are the weak spot.",
+    "tr": "Yüklemeniz indirmenizden çok düşük — kablo/DSL paketlerinde tipik. Normal kullanım için iyi, ama canlı yayın (Twitch/YouTube) ve büyük yüklemeler zayıf nokta."
+  },
+  "insight_speed_upload_ok": {
+    "en": "Upload is well-balanced with download — you can host video calls, live-stream or back up to the cloud without the connection choking.",
+    "tr": "Yükleme, indirmeyle dengeli — bağlantı tıkanmadan video görüşmesi yapabilir, canlı yayın açabilir veya buluta yedekleyebilirsiniz."
+  },
+  "insight_throttle_none": {
+    "en": "No protocol-based throttling found — your ISP isn't slowing specific kinds of traffic.",
+    "tr": "Protokol bazlı daraltma bulunamadı — ISP'niz belirli trafik türlerini yavaşlatmıyor."
+  },
+  "insight_throttle_protocols_free": {
+    "en": "In practice: torrents, YouTube/QUIC and VPNs all ran at the same speed as a normal HTTPS download — so nothing you do is being singled out.",
+    "tr": "Pratikte: torrentler, YouTube/QUIC ve VPN'ler normal bir HTTPS indirmesiyle aynı hızda çalıştı — yani yaptığınız hiçbir şey ayıklanmıyor."
+  },
+  "insight_throttle_bittorrent": {
+    "en": "BitTorrent ran far slower than a normal download — a sign your ISP throttles P2P/file-sharing traffic specifically (a very common practice).",
+    "tr": "BitTorrent normal bir indirmeden çok daha yavaş çalıştı — ISP'nizin özellikle P2P/dosya paylaşım trafiğini daralttığının işareti (çok yaygın bir uygulama)."
+  },
+  "insight_throttle_quic": {
+    "en": "QUIC traffic was throttled — this is the protocol YouTube and most Google services use, so they may load or buffer slower than expected.",
+    "tr": "QUIC trafiği daraltıldı — bu, YouTube ve çoğu Google servisinin kullandığı protokol, dolayısıyla beklenenden yavaş yüklenip takılabilirler."
+  },
+  "insight_throttle_wireguard": {
+    "en": "WireGuard (a popular VPN protocol) was throttled — if you use a VPN for privacy or work, expect reduced speeds on this ISP.",
+    "tr": "WireGuard (popüler bir VPN protokolü) daraltıldı — gizlilik veya iş için VPN kullanıyorsanız bu ISP'de düşük hız bekleyin."
+  },
+  "insight_throttle_openvpn": {
+    "en": "OpenVPN (a widely-used VPN protocol, common in corporate and consumer VPNs) was throttled — expect slower speeds when tunneling over OpenVPN on this ISP.",
+    "tr": "OpenVPN (kurumsal ve bireysel VPN'lerde yaygın kullanılan VPN protokolü) daraltıldı — bu ISP'de OpenVPN ile tünelleme yaparken daha düşük hız bekleyin."
+  },
+  "insight_throttle_vpn_advised": {
+    "en": "Several protocols are being shaped at once. A reputable VPN disguises your traffic as ordinary HTTPS, which often restores full speed.",
+    "tr": "Aynı anda birkaç protokol daraltılıyor. Güvenilir bir VPN trafiğinizi sıradan HTTPS gibi gösterir, bu da genelde tam hızı geri kazandırır."
+  },
+  "insight_throttle_single_protocol": {
+    "en": "Only one protocol is affected — your everyday browsing, streaming and gaming traffic runs at full speed.",
+    "tr": "Yalnızca bir protokol etkilenmiş — günlük gezinme, yayın ve oyun trafiğiniz tam hızda çalışıyor."
+  },
+  "insight_isp_clean": {
+    "en": "No interference found — your ISP isn't redirecting DNS, intercepting connections or filtering sites. Your traffic reaches the internet untouched.",
+    "tr": "Müdahale bulunamadı — ISP'niz DNS'i yönlendirmiyor, bağlantılara müdahale etmiyor veya siteleri filtrelemiyor. Trafiğiniz internete dokunulmadan ulaşıyor."
+  },
+  "insight_isp_integrity": {
+    "en": "In practice: when you visit a site, you reach the real server — not a copy or a middleman inserted by the provider.",
+    "tr": "Pratikte: bir siteyi ziyaret ettiğinizde gerçek sunucuya ulaşıyorsunuz — sağlayıcının araya soktuğu bir kopya veya aracıya değil."
+  },
+  "insight_isp_dns_hijack": {
+    "en": "DNS hijacking detected: your ISP quietly answers 'which server?' queries itself instead of letting them through. Often used for ad/redirect pages or blocks — switching to encrypted DNS (DoH/DoT) bypasses it.",
+    "tr": "DNS hijacking tespit edildi: ISP'niz 'hangi sunucu?' sorularını geçirmek yerine sessizce kendisi yanıtlıyor. Genelde reklam/yönlendirme sayfaları veya engeller için kullanılır — şifreli DNS'e (DoH/DoT) geçmek bunu aşar."
+  },
+  "insight_isp_proxy": {
+    "en": "A transparent proxy sits between you and the websites you visit — it can inspect or cache your traffic, which may affect speed and privacy.",
+    "tr": "Şeffaf bir proxy sizinle ziyaret ettiğiniz siteler arasında duruyor — trafiğinizi inceleyebilir veya önbelleğe alabilir, bu da hız ve gizliliği etkileyebilir."
+  },
+  "insight_isp_sni": {
+    "en": "SNI filtering detected: the provider reads the site name from your connection setup and can block specific domains — the typical mechanism behind 'this site is unavailable' censorship.",
+    "tr": "SNI filtreleme tespit edildi: sağlayıcı, bağlantı kurulumunuzdan site adını okuyup belirli alan adlarını engelleyebilir — 'bu siteye erişilemiyor' sansürünün tipik mekanizması."
+  },
+  "insight_isp_mitm": {
+    "en": "Possible TLS man-in-the-middle — a serious security flag. It means something may be decrypting your 'secure' (HTTPS) traffic. Verify certificate warnings and use a trusted VPN.",
+    "tr": "Olası TLS ortadaki adam — ciddi bir güvenlik işareti. 'Güvenli' (HTTPS) trafiğinizin bir şey tarafından çözülebileceği anlamına gelir. Sertifika uyarılarını doğrulayın ve güvenilir bir VPN kullanın."
+  },
+  "insight_ipv6_native": {
+    "en": "You have native IPv6 — the internet's modern addressing system, running directly alongside IPv4 (dual-stack). This is the ideal, future-proof setup.",
+    "tr": "Yerel IPv6'nız var — internetin modern adresleme sistemi, IPv4'le birlikte doğrudan çalışıyor (dual-stack). Bu, ideal ve geleceğe hazır kurulum."
+  },
+  "insight_ipv6_futureproof": {
+    "en": "In practice: newer services and devices that prefer IPv6 connect directly and efficiently, with no compatibility workarounds needed.",
+    "tr": "Pratikte: IPv6'yı tercih eden yeni servisler ve cihazlar doğrudan ve verimli bağlanır, uyumluluk çözümlerine gerek kalmaz."
+  },
+  "insight_ipv6_partial": {
+    "en": "IPv6 works, but through a tunnel (6to4/Teredo) rather than natively — functional, yet slightly slower and less reliable than a direct IPv6 line.",
+    "tr": "IPv6 çalışıyor ama yerel yerine bir tünel (6to4/Teredo) üzerinden — işlevsel, ama doğrudan IPv6 hattından biraz daha yavaş ve daha az güvenilir."
+  },
+  "insight_ipv6_none": {
+    "en": "No IPv6 — you're on IPv4 only. That's still fine for almost everything today, but IPv6 adoption keeps growing and is the long-term direction of the internet.",
+    "tr": "IPv6 yok — yalnız IPv4 kullanıyorsunuz. Bugün neredeyse her şey için hala yeterli, ama IPv6 yaygınlığı artıyor ve internetin uzun vadeli yönü."
+  },
+  "diag_latency_Aplus": {
+    "en": "Excellent latency. Ideal for competitive gaming and real-time apps (ITU-T G.114).",
+    "tr": "Mükemmel gecikme. Rekabetçi oyun ve gerçek zamanlı uygulamalar için ideal (ITU-T G.114)."
+  },
+  "diag_latency_A": {
+    "en": "Very low latency. Smooth for gaming, video calls and streaming.",
+    "tr": "Çok düşük gecikme. Oyun, video görüşme ve yayın için akıcı."
+  },
+  "diag_latency_B": {
+    "en": "Good latency. Fine for most uses; competitive FPS may feel minor delay.",
+    "tr": "İyi gecikme. Çoğu kullanım için yeterli; rekabetçi FPS'te hafif gecikme hissedilebilir."
+  },
+  "diag_latency_C": {
+    "en": "Moderate latency. Noticeable in fast-paced games; browsing/streaming unaffected.",
+    "tr": "Orta gecikme. Hızlı oyunlarda hissedilir; gezinme/yayın etkilenmez."
+  },
+  "diag_latency_D": {
+    "en": "High latency. Gaming feels laggy; consider a closer server or wired connection.",
+    "tr": "Yüksek gecikme. Oyun gecikmeli hissedilir; daha yakın sunucu veya kablolu bağlantı düşünün."
+  },
+  "diag_latency_F": {
+    "en": "Very high latency. Real-time apps unusable; check routing, ISP or server distance.",
+    "tr": "Çok yüksek gecikme. Gerçek zamanlı uygulamalar kullanılamaz; yönlendirme, ISP veya sunucu mesafesini kontrol edin."
+  },
+  "diag_jitter_Aplus": {
+    "en": "Rock-solid stability. No jitter — professional-grade connection (RFC 3550).",
+    "tr": "Kaya gibi sağlam. Jitter yok — profesyonel seviye bağlantı (RFC 3550)."
+  },
+  "diag_jitter_A": {
+    "en": "Very stable. Negligible jitter; consistent real-time performance.",
+    "tr": "Çok kararlı. İhmal edilebilir jitter; tutarlı gerçek zamanlı performans."
+  },
+  "diag_jitter_B": {
+    "en": "Stable. Minor jitter, rarely noticeable in games or calls.",
+    "tr": "Kararlı. Hafif jitter, oyun/görüşmede nadiren fark edilir."
+  },
+  "diag_jitter_C": {
+    "en": "Moderate jitter. Occasional lag spikes possible in competitive play.",
+    "tr": "Orta jitter. Rekabetçi oyunda ara sıra lag spike olabilir."
+  },
+  "diag_jitter_D": {
+    "en": "High jitter. Frequent spikes — prefer Ethernet over Wi-Fi, check QoS.",
+    "tr": "Yüksek jitter. Sık spike — Wi-Fi yerine Ethernet tercih edin, QoS kontrol edin."
+  },
+  "diag_jitter_F": {
+    "en": "Severe jitter. Unstable connection; voice/video and gaming will break up.",
+    "tr": "Ciddi jitter. Kararsız bağlantı; ses/video ve oyun kopacaktır."
+  },
+  "diag_loss_Aplus": {
+    "en": "Zero packet loss. Perfect link integrity (ITU-T G.1010).",
+    "tr": "Sıfır paket kaybı. Mükemmel bağlantı bütünlüğü (ITU-T G.1010)."
+  },
+  "diag_loss_A": {
+    "en": "Negligible packet loss. No practical impact.",
+    "tr": "İhmal edilebilir paket kaybı. Pratik etkisi yok."
+  },
+  "diag_loss_B": {
+    "en": "Low packet loss. Minor retransmits; generally unnoticeable.",
+    "tr": "Düşük paket kaybı. Hafif yeniden iletim; genelde fark edilmez."
+  },
+  "diag_loss_C": {
+    "en": "Moderate packet loss. Games may show rubber-banding; check cabling/Wi-Fi.",
+    "tr": "Orta paket kaybı. Oyunlarda kayma görülebilir; kablo/Wi-Fi kontrol edin."
+  },
+  "diag_loss_D": {
+    "en": "High packet loss. Disconnects and stutter likely; restart router, check line.",
+    "tr": "Yüksek paket kaybı. Kopma ve takılma olası; router'ı yeniden başlatın, hattı kontrol edin."
+  },
+  "diag_loss_F": {
+    "en": "Severe packet loss. Connection unreliable; contact your ISP.",
+    "tr": "Ciddi paket kaybı. Bağlantı güvenilmez; ISP'nizle iletişime geçin."
+  },
+  "diag_bufferbloat_Aplus": {
+    "en": "No bufferbloat. Latency stays low under load — excellent.",
+    "tr": "Bufferbloat yok. Yük altında gecikme düşük kalıyor — mükemmel."
+  },
+  "diag_bufferbloat_A": {
+    "en": "Minimal bufferbloat. Great for gaming while others use the network.",
+    "tr": "Minimal bufferbloat. Başkaları ağı kullanırken oyun için harika."
+  },
+  "diag_bufferbloat_B": {
+    "en": "Slight bufferbloat. Mostly fine; heavy uploads may add small delay.",
+    "tr": "Hafif bufferbloat. Çoğunlukla iyi; ağır yüklemeler küçük gecikme ekleyebilir."
+  },
+  "diag_bufferbloat_C": {
+    "en": "Noticeable bufferbloat. Lag spikes during downloads; enable SQM/QoS.",
+    "tr": "Belirgin bufferbloat. İndirme sırasında lag spike; SQM/QoS etkinleştirin."
+  },
+  "diag_bufferbloat_D": {
+    "en": "Significant bufferbloat. Strong spikes under load; SQM strongly recommended.",
+    "tr": "Önemli bufferbloat. Yük altında güçlü spike; SQM şiddetle önerilir."
+  },
+  "diag_bufferbloat_F": {
+    "en": "Severe bufferbloat. Network unusable under load; SQM/QoS is essential.",
+    "tr": "Ciddi bufferbloat. Yük altında ağ kullanılamaz; SQM/QoS şart."
+  },
+  "diag_wifi_Aplus": {
+    "en": "Excellent Wi-Fi signal (or wired). No signal-related issues.",
+    "tr": "Mükemmel Wi-Fi sinyali (veya kablolu). Sinyal kaynaklı sorun yok."
+  },
+  "diag_wifi_A": {
+    "en": "Strong Wi-Fi signal. Stable throughput expected.",
+    "tr": "Güçlü Wi-Fi sinyali. Kararlı hız beklenir."
+  },
+  "diag_wifi_B": {
+    "en": "Good Wi-Fi signal. Reliable for most activities.",
+    "tr": "İyi Wi-Fi sinyali. Çoğu etkinlik için güvenilir."
+  },
+  "diag_wifi_C": {
+    "en": "Fair Wi-Fi signal. Speed may drop; move closer to the router.",
+    "tr": "Orta Wi-Fi sinyali. Hız düşebilir; router'a yaklaşın."
+  },
+  "diag_wifi_D": {
+    "en": "Weak Wi-Fi signal. Expect drops; reposition router or use a repeater.",
+    "tr": "Zayıf Wi-Fi sinyali. Kopma beklenir; router'ı yeniden konumlandırın veya repeater kullanın."
+  },
+  "diag_wifi_F": {
+    "en": "Very weak Wi-Fi signal. Near connection edge; wired or mesh recommended.",
+    "tr": "Çok zayıf Wi-Fi sinyali. Bağlantı eşiğinde; kablolu veya mesh önerilir."
+  },
+  "diag_speed_Aplus": {
+    "en": "Excellent throughput. Handles 4K streaming, large downloads and multiple users easily.",
+    "tr": "Mükemmel bant genişliği. 4K yayın, büyük indirmeler ve çoklu kullanıcıyı rahat kaldırır."
+  },
+  "diag_speed_A": {
+    "en": "Fast connection. Comfortable for 4K, gaming and heavy use (FCC broadband+).",
+    "tr": "Hızlı bağlantı. 4K, oyun ve ağır kullanım için rahat (FCC genişbant+)."
+  },
+  "diag_speed_B": {
+    "en": "Good throughput. Smooth HD/4K streaming and downloads.",
+    "tr": "İyi bant genişliği. Akıcı HD/4K yayın ve indirme."
+  },
+  "diag_speed_C": {
+    "en": "Moderate throughput. Fine for HD; 4K or multi-device may strain.",
+    "tr": "Orta bant genişliği. HD için yeterli; 4K veya çok-cihaz zorlayabilir."
+  },
+  "diag_speed_D": {
+    "en": "Low throughput. HD streaming may buffer; below modern broadband norms.",
+    "tr": "Düşük bant genişliği. HD yayın takılabilir; modern genişbant normlarının altında."
+  },
+  "diag_speed_F": {
+    "en": "Very low throughput. Insufficient for modern use; check plan or line quality.",
+    "tr": "Çok düşük bant genişliği. Modern kullanım için yetersiz; paket veya hat kalitesini kontrol edin."
+  },
+  "diag_speed_unavailable": {
+    "en": "Not measured — run a full test to include throughput.",
+    "tr": "Ölçülmedi — bant genişliği için tam test çalıştırın."
+  },
+  "diag_throttle_Aplus": {
+    "en": "No throttling detected. BitTorrent, QUIC, WireGuard and OpenVPN all run at full speed.",
+    "tr": "Daraltma tespit edilmedi. BitTorrent, QUIC, WireGuard ve OpenVPN tam hızda çalışıyor."
+  },
+  "diag_throttle_A": {
+    "en": "No meaningful throttling. Protocol speeds match your baseline.",
+    "tr": "Anlamlı daraltma yok. Protokol hızları temel hızınızla uyumlu."
+  },
+  "diag_throttle_B": {
+    "en": "Mild throttling on one protocol (often P2P). Most traffic unaffected.",
+    "tr": "Bir protokolde hafif daraltma (genelde P2P). Çoğu trafik etkilenmez."
+  },
+  "diag_throttle_C": {
+    "en": "Moderate throttling. One or more protocols are slowed by your ISP.",
+    "tr": "Orta daraltma. ISP'niz bir veya daha fazla protokolü yavaşlatıyor."
+  },
+  "diag_throttle_D": {
+    "en": "Significant throttling. Multiple protocols slowed; a VPN may help.",
+    "tr": "Önemli daraltma. Birden çok protokol yavaşlatılmış; VPN yardımcı olabilir."
+  },
+  "diag_throttle_F": {
+    "en": "Heavy throttling. ISP restricts BitTorrent/QUIC/WireGuard; VPN strongly advised.",
+    "tr": "Ağır daraltma. ISP BitTorrent/QUIC/WireGuard'ı kısıtlıyor; VPN şiddetle önerilir."
+  },
+  "diag_throttle_unavailable": {
+    "en": "Not measured — run the ISP Throttling test.",
+    "tr": "Ölçülmedi — ISP Daraltma testini çalıştırın."
+  },
+  "diag_isp_intervention_Aplus": {
+    "en": "No interference detected. DNS, TLS/SNI and routing are clean.",
+    "tr": "Müdahale tespit edilmedi. DNS, TLS/SNI ve yönlendirme temiz."
+  },
+  "diag_isp_intervention_A": {
+    "en": "No meaningful interference. Connection integrity intact.",
+    "tr": "Anlamlı müdahale yok. Bağlantı bütünlüğü korunuyor."
+  },
+  "diag_isp_intervention_B": {
+    "en": "Minor interference (e.g. DNS hijack). Easily bypassed with DoH/DoT.",
+    "tr": "Hafif müdahale (örn. DNS hijack). DoH/DoT ile kolayca aşılır."
+  },
+  "diag_isp_intervention_C": {
+    "en": "Moderate interference. Transparent proxy or filtering present.",
+    "tr": "Orta müdahale. Şeffaf proxy veya filtreleme mevcut."
+  },
+  "diag_isp_intervention_D": {
+    "en": "Significant interference. SNI filtering or access blocks detected.",
+    "tr": "Önemli müdahale. SNI filtreleme veya erişim engeli tespit edildi."
+  },
+  "diag_isp_intervention_F": {
+    "en": "Severe interference. Possible MITM — security risk; verify certificates, use a trusted VPN.",
+    "tr": "Ciddi müdahale. Olası MITM — güvenlik riski; sertifikaları doğrulayın, güvenilir VPN kullanın."
+  },
+  "diag_isp_intervention_unavailable": {
+    "en": "Not measured — run the ISP Interference test.",
+    "tr": "Ölçülmedi — ISP Müdahale testini çalıştırın."
+  },
+  "diag_ipv6_Aplus": {
+    "en": "Native dual-stack IPv6. Future-proof connectivity.",
+    "tr": "Yerel dual-stack IPv6. Geleceğe hazır bağlantı."
+  },
+  "diag_ipv6_A": {
+    "en": "Full IPv6 connectivity. Excellent.",
+    "tr": "Tam IPv6 bağlantısı. Mükemmel."
+  },
+  "diag_ipv6_B": {
+    "en": "IPv6 available. Good modern connectivity.",
+    "tr": "IPv6 mevcut. İyi modern bağlantı."
+  },
+  "diag_ipv6_C": {
+    "en": "Partial IPv6 (tunnel/6to4). Works but not native.",
+    "tr": "Kısmi IPv6 (tünel/6to4). Çalışır ama yerel değil."
+  },
+  "diag_ipv6_D": {
+    "en": "Limited IPv6. Mostly IPv4-only; fine for now.",
+    "tr": "Sınırlı IPv6. Çoğunlukla yalnız IPv4; şimdilik sorun değil."
+  },
+  "diag_ipv6_F": {
+    "en": "No IPv6. IPv4-only — acceptable today but ages over time.",
+    "tr": "IPv6 yok. Yalnız IPv4 — bugün kabul edilebilir ama zamanla eskir."
+  },
+  "diag_ipv6_unavailable": {
+    "en": "Not measured — run the IPv6 test.",
+    "tr": "Ölçülmedi — IPv6 testini çalıştırın."
+  },
+  "diag_cgnat_unavailable": {
+    "en": "Could not determine — enable UPnP on your router for CGNAT detection.",
+    "tr": "Belirlenemedi — CGNAT tespiti için router'da UPnP'yi açın."
+  },
+  "diag_mtu_unavailable": {
+    "en": "Not measured — run the MTU/MSS test.",
+    "tr": "Ölçülmedi — MTU/MSS testini çalıştırın."
+  },
+  "dash_ipv6_full": {
+    "en": "Full Support",
+    "tr": "Tam Destek"
+  },
+  "dash_ipv6_none": {
+    "en": "None",
+    "tr": "Yok"
+  },
+  "dash_update_available": {
+    "en": "New version available: ",
+    "tr": "Yeni sürüm mevcut: "
+  },
+  "dash_update_download": {
+    "en": "Download",
+    "tr": "İndir"
+  },
+  "stat_ping": {
+    "en": "Ping",
+    "tr": "Ping"
+  },
+  "col_region": {
+    "en": "Region",
+    "tr": "Bölge"
+  },
+  "col_min": {
+    "en": "Min",
+    "tr": "Min"
+  },
+  "col_avg": {
+    "en": "Avg",
+    "tr": "Ort"
+  },
+  "col_max": {
+    "en": "Max",
+    "tr": "Maks"
+  },
+  "col_jitter": {
+    "en": "Jitter",
+    "tr": "Dalgalanma"
+  },
+  "col_loss": {
+    "en": "Loss",
+    "tr": "Kayıp"
+  },
+  "col_grade": {
+    "en": "Grade",
+    "tr": "Not"
+  },
+  "col_ip": {
+    "en": "IP",
+    "tr": "IP"
+  },
+  "col_rtt": {
+    "en": "RTT",
+    "tr": "RTT"
+  },
+  "stat_download": {
+    "en": "Download",
+    "tr": "İndirme"
+  },
+  "stat_upload": {
+    "en": "Upload",
+    "tr": "Yükleme"
+  },
+  "stat_server": {
+    "en": "Server",
+    "tr": "Sunucu"
+  },
+  "speed_testing": {
+    "en": "Testing",
+    "tr": "Test sürüyor"
+  },
+  "speed_complete": {
+    "en": "Complete",
+    "tr": "Tamamlandı"
+  },
+  "speed_idle": {
+    "en": "Idle",
+    "tr": "Boşta"
+  },
+  "speed_cf_cdn": {
+    "en": "Cloudflare CDN",
+    "tr": "Cloudflare CDN"
+  },
+  "speed_srv_cloudflare_sub": {
+    "en": "Global CDN · Nearest PoP",
+    "tr": "Küresel CDN · En yakın PoP"
+  },
+  "speed_srv_netveil_sub": {
+    "en": "Dedicated · Frankfurt 1Gbps",
+    "tr": "Adanmış · Frankfurt 1Gbps"
+  },
+  "bloat_saturating": {
+    "en": "Saturating connection…",
+    "tr": "Bağlantı satüre ediliyor…"
+  },
+  "err_server_busy": {
+    "en": "Server is busy — another user is running a test. Please try again in ~30 seconds.",
+    "tr": "Sunucu meşgul — şu anda başka bir kullanıcı test yapıyor. Lütfen ~30 saniye sonra tekrar deneyin."
+  },
+  "bloat_idle_p50": {
+    "en": "Idle p50",
+    "tr": "Boşta p50"
+  },
+  "bloat_loaded_p95": {
+    "en": "Loaded p95",
+    "tr": "Yüklü p95"
+  },
+  "bloat_delta": {
+    "en": "Latency Delta",
+    "tr": "Gecikme Artışı"
+  },
+  "bloat_latency_chart": {
+    "en": "Latency Chart",
+    "tr": "Gecikme Grafiği"
+  },
+  "bloat_segment": {
+    "en": "Segment Diagnosis",
+    "tr": "Segment Teşhisi"
+  },
+  "bloat_culprit": {
+    "en": "Culprit detection",
+    "tr": "Suçlu segment tespiti"
+  },
+  "bloat_lan": {
+    "en": "PC ↔ Router",
+    "tr": "PC ↔ Router"
+  },
+  "bloat_wan": {
+    "en": "PC ↔ WAN",
+    "tr": "PC ↔ WAN"
+  },
+  "bloat_lan_sub": {
+    "en": "LAN segment (Wi-Fi / Ethernet)",
+    "tr": "LAN segmenti (Wi-Fi / Ethernet)"
+  },
+  "bloat_wan_sub": {
+    "en": "Internet segment (ISP / Router)",
+    "tr": "İnternet segmenti (ISP / Router)"
+  },
+  "net_wifi_quality": {
+    "en": "Wi-Fi Quality",
+    "tr": "Wi-Fi Kalitesi"
+  },
+  "dash_nic_active": {
+    "en": "Active",
+    "tr": "Aktif"
+  },
+  "common_error": {
+    "en": "Error:",
+    "tr": "Hata:"
+  },
+  "net_connected": {
+    "en": "Connected",
+    "tr": "Bağlı"
+  },
+  "net_disconnected": {
+    "en": "Disconnected",
+    "tr": "Bağlı Değil"
+  },
+  "net_no_wifi": {
+    "en": "No Wi-Fi connection — using Ethernet or adapter is off.",
+    "tr": "Wi-Fi bağlantısı yok — Ethernet üzerinden bağlısın ya da adaptör kapalı."
+  },
+  "net_band": {
+    "en": "Band",
+    "tr": "Bant"
+  },
+  "net_channel": {
+    "en": "Channel",
+    "tr": "Kanal"
+  },
+  "net_protocol": {
+    "en": "Protocol",
+    "tr": "Protokol"
+  },
+  "net_security": {
+    "en": "Security",
+    "tr": "Güvenlik"
+  },
+  "net_tx": {
+    "en": "TX Rate",
+    "tr": "TX Hızı"
+  },
+  "net_rx": {
+    "en": "RX Rate",
+    "tr": "RX Hızı"
+  },
+  "net_adapters": {
+    "en": "Network Adapters",
+    "tr": "Ağ Adaptörleri"
+  },
+  "net_ip_info": {
+    "en": "IP Information",
+    "tr": "IP Bilgileri"
+  },
+  "net_lan_ip": {
+    "en": "LAN IP",
+    "tr": "LAN IP"
+  },
+  "net_gateway": {
+    "en": "Gateway",
+    "tr": "Gateway"
+  },
+  "net_wan_ip": {
+    "en": "WAN IP",
+    "tr": "WAN IP"
+  },
+  "net_isp": {
+    "en": "ISP",
+    "tr": "ISP"
+  },
+  "trace_target": {
+    "en": "Target",
+    "tr": "Hedef"
+  },
+  "trace_select_preset": {
+    "en": "Select Preset",
+    "tr": "Preset Seç"
+  },
+  "trace_manual": {
+    "en": "Manual Entry",
+    "tr": "Manuel Gir"
+  },
+  "trace_placeholder": {
+    "en": "IP or hostname",
+    "tr": "IP veya hostname"
+  },
+  "trace_start": {
+    "en": "Start Trace",
+    "tr": "Trace Başlat"
+  },
+  "trace_stop": {
+    "en": "Stop",
+    "tr": "Durdur"
+  },
+  "trace_clear": {
+    "en": "Clear",
+    "tr": "Temizle"
+  },
+  "trace_hop_list": {
+    "en": "Hop List",
+    "tr": "Hop Listesi"
+  },
+  "trace_monitoring": {
+    "en": "monitoring",
+    "tr": "izleniyor"
+  },
+  "trace_done": {
+    "en": "complete",
+    "tr": "tamamlandı"
+  },
+  "trace_waiting": {
+    "en": "waiting",
+    "tr": "bekleniyor"
+  },
+  "trace_waiting_row": {
+    "en": "● waiting…",
+    "tr": "● bekliyor…"
+  },
+  "trace_empty": {
+    "en": "Select a target and press Start Trace",
+    "tr": "Hedef seç ve \"Trace Başlat\"a bas"
+  },
+  "trace_hops": {
+    "en": "hops received…",
+    "tr": "hop alındı…"
+  },
+  "trace_responded": {
+    "en": "responded",
+    "tr": "yanıt"
+  },
+  "trace_country": {
+    "en": "Country",
+    "tr": "Ülke"
+  },
+  "trace_hostname": {
+    "en": "Hostname",
+    "tr": "Hostname"
+  },
+  "trace_error": {
+    "en": "Error",
+    "tr": "Hata"
+  },
+  "trace_waterfall": {
+    "en": "RTT Waterfall",
+    "tr": "RTT Waterfall"
+  },
+  "trace_seg_lan": {
+    "en": "LAN",
+    "tr": "LAN"
+  },
+  "trace_seg_isp": {
+    "en": "ISP",
+    "tr": "ISP"
+  },
+  "trace_seg_transit": {
+    "en": "Transit",
+    "tr": "Transit"
+  },
+  "trace_seg_target": {
+    "en": "Target",
+    "tr": "Hedef"
+  },
+  "trace_summary_hops": {
+    "en": "hops",
+    "tr": "hop"
+  },
+  "trace_summary_total_rtt": {
+    "en": "total RTT",
+    "tr": "toplam RTT"
+  },
+  "trace_summary_timeouts": {
+    "en": "timeouts",
+    "tr": "zaman aşımı"
+  },
+  "trace_summary_countries": {
+    "en": "countries",
+    "tr": "ülke"
+  },
+  "trace_view_table": {
+    "en": "Table",
+    "tr": "Tablo"
+  },
+  "trace_view_waterfall": {
+    "en": "Waterfall",
+    "tr": "Waterfall"
+  },
+  "ping_target": {
+    "en": "Target",
+    "tr": "Hedef"
+  },
+  "ping_placeholder": {
+    "en": "Enter hostname or IP",
+    "tr": "Hostname veya IP girin"
+  },
+  "ping_run": {
+    "en": "Run",
+    "tr": "Başlat"
+  },
+  "ping_stop": {
+    "en": "Stop",
+    "tr": "Durdur"
+  },
+  "ping_running": {
+    "en": "Running…",
+    "tr": "Çalışıyor…"
+  },
+  "ping_results": {
+    "en": "Ping Results",
+    "tr": "Ping Sonuçları"
+  },
+  "ping_seq": {
+    "en": "Seq",
+    "tr": "Sıra"
+  },
+  "ping_timeout": {
+    "en": "Timeout",
+    "tr": "Zaman Aşımı"
+  },
+  "ping_status": {
+    "en": "Status",
+    "tr": "Durum"
+  },
+  "ping_status_ok": {
+    "en": "OK",
+    "tr": "OK"
+  },
+  "ping_status_timeout": {
+    "en": "No response",
+    "tr": "Yanıt yok"
+  },
+  "ping_empty": {
+    "en": "No ping results yet — run a test to begin",
+    "tr": "Henüz ping sonucu yok — başlamak için test çalıştırın"
+  },
+  "ping_sent": {
+    "en": "Sent",
+    "tr": "Gönderilen"
+  },
+  "ping_received": {
+    "en": "Received",
+    "tr": "Alınan"
+  },
+  "ping_loss": {
+    "en": "Loss",
+    "tr": "Kayıp"
+  },
+  "ping_min": {
+    "en": "Min",
+    "tr": "Min"
+  },
+  "ping_avg": {
+    "en": "Avg",
+    "tr": "Ort"
+  },
+  "ping_max": {
+    "en": "Max",
+    "tr": "Maks"
+  },
+  "ping_jitter": {
+    "en": "Jitter",
+    "tr": "Jitter"
+  },
+  "ping_hostname": {
+    "en": "Hostname",
+    "tr": "Hostname"
+  },
+  "ping_continuous": {
+    "en": "Continuous",
+    "tr": "Sürekli"
+  },
+  "cbar_this_pc": {
+    "en": "This Computer",
+    "tr": "Bu Bilgisayar"
+  },
+  "cbar_detecting": {
+    "en": "detecting…",
+    "tr": "tespit ediliyor…"
+  },
+  "cbar_gateway": {
+    "en": "Gateway",
+    "tr": "Ağ Geçidi"
+  },
+  "settings_title": {
+    "en": "Settings",
+    "tr": "Ayarlar"
+  },
+  "settings_version": {
+    "en": "Version",
+    "tr": "Sürüm"
+  },
+  "settings_update_available": {
+    "en": "New version available",
+    "tr": "Yeni sürüm mevcut"
+  },
+  "settings_language": {
+    "en": "Language",
+    "tr": "Dil"
+  },
+  "settings_close": {
+    "en": "Close",
+    "tr": "Kapat"
+  },
+  "ping_servers": {
+    "en": "servers",
+    "tr": "sunucu"
+  },
+  "ping_sorted_by": {
+    "en": "sorted by",
+    "tr": "sıralama"
+  },
+  "ping_unreachable": {
+    "en": "unreachable",
+    "tr": "erişilemiyor"
+  },
+  "ping_measuring": {
+    "en": "measuring…",
+    "tr": "ölçülüyor…"
+  },
+  "throttle_header_desc": {
+    "en": "Connects to our server (netveil.net) using different protocols and compares against baseline speed. Detects whether your ISP restricts specific protocols.",
+    "tr": "Kendi sunucumuza (netveil.net) farklı protokollerle bağlanır, temel hızla karşılaştırır. ISP'nin belirli protokolleri yavaşlatıp yavaşlatmadığını tespit eder."
+  },
+  "throttle_detected": {
+    "en": "Your ISP may be throttling specific protocols",
+    "tr": "ISP'niz belirli protokolleri yavaşlatıyor olabilir."
+  },
+  "throttle_not_detected": {
+    "en": "No throttling detected",
+    "tr": "Daraltma tespit edilmedi"
+  },
+  "throttle_baseline_info": {
+    "en": "Baseline: {mbps} Mbps · Test server: netveil.net · Frankfurt",
+    "tr": "Baseline: {mbps} Mbps · Test sunucusu: netveil.net · Frankfurt"
+  },
+  "throttle_testing": {
+    "en": "● testing",
+    "tr": "● test ediliyor"
+  },
+  "throttle_reference": {
+    "en": "reference",
+    "tr": "referans"
+  },
+  "throttle_dl": {
+    "en": "↓ Download",
+    "tr": "↓ İndirme"
+  },
+  "throttle_ul": {
+    "en": "↑ Upload",
+    "tr": "↑ Yükleme"
+  },
+  "throttle_verdict_normal": {
+    "en": "Normal",
+    "tr": "Normal"
+  },
+  "throttle_verdict_throttled": {
+    "en": "Throttled",
+    "tr": "Daraltılmış"
+  },
+  "throttle_verdict_blocked": {
+    "en": "Blocked",
+    "tr": "Engellenmiş"
+  },
+  "throttle_verdict_pending": {
+    "en": "Pending",
+    "tr": "Yakında"
+  },
+  "throttle_how_title": {
+    "en": "How does it work?",
+    "tr": "Nasıl çalışır?"
+  },
+  "throttle_how_desc": {
+    "en": "Each protocol is sent to our server with real fingerprints that ISP DPI systems recognize. Compared against baseline HTTPS. More than 30% deviation is throttling, more than 80% is blocking. All traffic goes to netveil.net — no third-party servers.",
+    "tr": "Her protokol, ISP DPI sistemlerinin tanıdığı gerçek parmak izleriyle kendi sunucumuza gönderilir. Baseline HTTPS ile karşılaştırılır. %30'dan fazla sapma throttling, %80'den fazla sapma engelleme olarak değerlendirilir. Tüm trafik netveil.net'e yöneliktir — üçüncü taraf sunuculara trafik gönderilmez."
+  },
+  "throttle_limitations_title": {
+    "en": "Limitations — read before interpreting",
+    "tr": "Sınırlılıklar — yorumlamadan önce okuyun"
+  },
+  "throttle_limitations_desc": {
+    "en": "This test is an indicator, not conclusive proof. It works against shallow DPI (systems that inspect the first packet) but is limited against deep DPI (systems that analyze the whole flow) — the QUIC/WireGuard tests send a correct first-packet signature, not a full real connection. Results depend on a single server (netveil.net, Frankfurt), so distance and server-side limits can affect them, and the 30%/80% thresholds are approximate (no confidence interval). Read a 'Throttled' result as a strong hint to investigate further, not as definitive evidence that your ISP is throttling you.",
+    "tr": "Bu test bir göstergedir, kesin kanıt değildir. Shallow DPI'a (ilk pakete bakan sistemler) karşı çalışır, ancak deep DPI'a (tüm akışı analiz eden sistemler) karşı sınırlıdır — QUIC/WireGuard testleri doğru bir ilk-paket imzası gönderir, gerçek bir tam bağlantı değil. Sonuçlar tek bir sunucuya (netveil.net, Frankfurt) bağlıdır; mesafe ve sunucu tarafı sınırlar etkileyebilir ve %30/%80 eşikleri yaklaşıktır (güven aralığı yoktur). 'Yavaşlatılıyor' sonucunu, ISP'nizin sizi kesinlikle kısıtladığının kanıtı olarak değil, daha fazla araştırmak için güçlü bir ipucu olarak okuyun."
+  },
+  "isp_detected_title": {
+    "en": "ISP Intervention Detected",
+    "tr": "ISP Müdahalesi Tespit Edildi"
+  },
+  "isp_not_detected_title": {
+    "en": "No ISP Intervention Detected",
+    "tr": "ISP Müdahalesi Tespit Edilmedi"
+  },
+  "isp_detected_sub": {
+    "en": "Anomaly found in one or more tests.",
+    "tr": "Bir veya daha fazla testte anormallik bulundu."
+  },
+  "isp_not_detected_sub": {
+    "en": "All tests passed clean, no signs of network intervention.",
+    "tr": "Tüm testler temiz geçti, ağınıza müdahale belirtisi yok."
+  },
+  "isp_running_title": {
+    "en": "ISP Intervention Tests Running…",
+    "tr": "ISP Müdahale Testleri Çalışıyor…"
+  },
+  "isp_running_preparing": {
+    "en": "Preparing tests…",
+    "tr": "Testler hazırlanıyor…"
+  },
+  "isp_running_current": {
+    "en": "Currently: ",
+    "tr": "Şu an: "
+  },
+  "isp_verdict_clean": {
+    "en": "Clean",
+    "tr": "Temiz"
+  },
+  "isp_verdict_inconclusive": {
+    "en": "Inconclusive",
+    "tr": "Belirsiz"
+  },
+  "isp_verdict_hijacked": {
+    "en": "Hijacked",
+    "tr": "Ele Geçirilmiş"
+  },
+  "isp_verdict_detected": {
+    "en": "Detected",
+    "tr": "Tespit Edildi"
+  },
+  "isp_verdict_filtered": {
+    "en": "Filtered",
+    "tr": "Filtreleniyor"
+  },
+  "isp_verdict_running": {
+    "en": "Running…",
+    "tr": "Çalışıyor…"
+  },
+  "isp_phase_dns_hijack_label": {
+    "en": "DNS Hijacking",
+    "tr": "DNS Ele Geçirme"
+  },
+  "isp_phase_dns_hijack_desc": {
+    "en": "System DNS responses are compared with Google 8.8.8.8.",
+    "tr": "Sistem DNS yanıtları Google 8.8.8.8 ile karşılaştırılır."
+  },
+  "isp_phase_transparent_proxy_label": {
+    "en": "Transparent Proxy",
+    "tr": "Şeffaf Proxy"
+  },
+  "isp_phase_transparent_proxy_desc": {
+    "en": "HTTP traffic is checked for proxy headers like Via, X-Forwarded-For.",
+    "tr": "HTTP trafiğinde Via, X-Forwarded-For gibi proxy başlıkları aranır."
+  },
+  "isp_phase_sni_filtering_label": {
+    "en": "SNI Filtering",
+    "tr": "SNI Filtreleme"
+  },
+  "isp_phase_sni_filtering_desc": {
+    "en": "TLS connections are attempted to known VPN/privacy sites.",
+    "tr": "Bilinen VPN/gizlilik sitelerine TLS bağlantısı denenir."
+  },
+  "isp_phase_mitm_label": {
+    "en": "SSL/TLS MITM",
+    "tr": "SSL/TLS MITM"
+  },
+  "isp_phase_mitm_desc": {
+    "en": "TLS certificate chain is verified and checked for MITM signs.",
+    "tr": "TLS sertifika zinciri doğrulanır, MITM işareti aranır."
+  },
+  "isp_phase_doh_dot_label": {
+    "en": "DoH / DoT Access",
+    "tr": "DoH / DoT Erişimi"
+  },
+  "isp_phase_doh_dot_desc": {
+    "en": "Access to DNS over HTTPS and DNS over TLS providers is tested.",
+    "tr": "DNS over HTTPS ve DNS over TLS sağlayıcılarına erişim test edilir."
+  },
+  "isp_phase_port_test_label": {
+    "en": "Port Access",
+    "tr": "Port Erişim"
+  },
+  "isp_phase_port_test_desc": {
+    "en": "Accessibility of critical ports (80, 443, 53, 853, 8080, 1194, 51820) via netveil.net is measured.",
+    "tr": "Kritik portların (80, 443, 53, 853, 8080, 1194, 51820) netveil.net üzerinden erişilebilirliği ölçülür."
+  },
+  "isp_phase_as_blocking_label": {
+    "en": "VPN/Tor Access",
+    "tr": "VPN/Tor Erişimi"
+  },
+  "isp_phase_as_blocking_desc": {
+    "en": "HTTPS access to known VPN and Tor services is tested.",
+    "tr": "Bilinen VPN ve Tor servislerine HTTPS erişimi test edilir."
+  },
+  "isp_extra_sys_dns": {
+    "en": "System DNS: ",
+    "tr": "Sistem DNS: "
+  },
+  "isp_extra_google_dns": {
+    "en": "Google DNS: ",
+    "tr": "Google DNS: "
+  },
+  "isp_extra_headers": {
+    "en": "Headers: ",
+    "tr": "Başlıklar: "
+  },
+  "isp_extra_tested": {
+    "en": "Tested: ",
+    "tr": "Test edilen: "
+  },
+  "isp_extra_blocked": {
+    "en": "Inaccessible: ",
+    "tr": "Erişilemeyen: "
+  },
+  "isp_extra_cert_valid": {
+    "en": "Certificate: Valid ✓",
+    "tr": "Sertifika: Geçerli ✓"
+  },
+  "isp_extra_cert_invalid": {
+    "en": "Certificate: Invalid ✗",
+    "tr": "Sertifika: Geçersiz ✗"
+  },
+  "isp_extra_doh_works": {
+    "en": "DoH: ✓ Working",
+    "tr": "DoH: ✓ Çalışıyor"
+  },
+  "isp_extra_doh_blocked": {
+    "en": "DoH: ✗ Blocked",
+    "tr": "DoH: ✗ Engelleniyor"
+  },
+  "isp_extra_dot_works": {
+    "en": "DoT: ✓ Working",
+    "tr": "DoT: ✓ Çalışıyor"
+  },
+  "isp_extra_dot_blocked": {
+    "en": "DoT: ✗ Blocked",
+    "tr": "DoT: ✗ Engelleniyor"
+  },
+  "isp_extra_blocked_providers": {
+    "en": "Blocked: ",
+    "tr": "Engellenen: "
+  },
+  "isp_extra_port_open": {
+    "en": "Open: ",
+    "tr": "Açık: "
+  },
+  "isp_extra_port_closed": {
+    "en": "Closed: ",
+    "tr": "Kapalı: "
+  },
+  "isp_extra_vpn_blocked": {
+    "en": "Blocked: ",
+    "tr": "Engellenen: "
+  },
+  "ipv6_running_title": {
+    "en": "IPv6 Tests Running…",
+    "tr": "IPv6 Testleri Çalışıyor…"
+  },
+  "ipv6_connectivity_card_title": {
+    "en": "IPv6 Connection Status",
+    "tr": "IPv6 Bağlantı Durumu"
+  },
+  "ipv6_grade_full": {
+    "en": "Full Support",
+    "tr": "Tam Destek"
+  },
+  "ipv6_grade_partial": {
+    "en": "Partial",
+    "tr": "Kısmi"
+  },
+  "ipv6_grade_tunnel": {
+    "en": "Tunnel Only",
+    "tr": "Yalnızca Tünel"
+  },
+  "ipv6_grade_none": {
+    "en": "None",
+    "tr": "Yok"
+  },
+  "ipv6_grade_excellent": {
+    "en": "Excellent",
+    "tr": "Mükemmel"
+  },
+  "ipv6_grade_good": {
+    "en": "Good",
+    "tr": "İyi"
+  },
+  "ipv6_grade_poor": {
+    "en": "Poor",
+    "tr": "Zayıf"
+  },
+  "ipv6_native": {
+    "en": "Native IPv6",
+    "tr": "Native IPv6"
+  },
+  "ipv6_native_yes": {
+    "en": "✓ Available",
+    "tr": "✓ Var"
+  },
+  "ipv6_native_no": {
+    "en": "✗ None",
+    "tr": "✗ Yok"
+  },
+  "ipv6_dns_aaaa": {
+    "en": "DNS (AAAA)",
+    "tr": "DNS (AAAA)"
+  },
+  "ipv6_dns_works": {
+    "en": "✓ Working",
+    "tr": "✓ Çalışıyor"
+  },
+  "ipv6_dns_broken": {
+    "en": "✗ Not working",
+    "tr": "✗ Çalışmıyor"
+  },
+  "ipv6_tunnel": {
+    "en": "Tunnel (Teredo/6to4)",
+    "tr": "Tünel (Teredo/6to4)"
+  },
+  "ipv6_tunnel_yes": {
+    "en": "⚠ Present",
+    "tr": "⚠ Var"
+  },
+  "ipv6_tunnel_no": {
+    "en": "None",
+    "tr": "Yok"
+  },
+  "ipv6_wan": {
+    "en": "WAN IPv6",
+    "tr": "WAN IPv6"
+  },
+  "ipv6_gateway": {
+    "en": "IPv6 Gateway",
+    "tr": "IPv6 Gateway"
+  },
+  "ipv6_isp": {
+    "en": "ISP",
+    "tr": "ISP"
+  },
+  "ipv6_detected_addresses": {
+    "en": "Detected IPv6 Addresses",
+    "tr": "Algılanan IPv6 Adresleri"
+  },
+  "ipv6_temporary": {
+    "en": "Temporary",
+    "tr": "Geçici"
+  },
+  "ipv6_quality_title": {
+    "en": "ISP IPv6 Quality Assessment",
+    "tr": "ISP IPv6 Kalite Değerlendirmesi"
+  },
+  "ipv6_quality_assessment_label": {
+    "en": "Assessment",
+    "tr": "Değerlendirme"
+  },
+  "ipv6_assess_none": {
+    "en": "No IPv6",
+    "tr": "IPv6 Yok"
+  },
+  "ipv6_assess_tunnel": {
+    "en": "Tunnel Only",
+    "tr": "Yalnızca Tünel"
+  },
+  "ipv6_assess_partial": {
+    "en": "Partial",
+    "tr": "Kısmi"
+  },
+  "ipv6_assess_good": {
+    "en": "Good",
+    "tr": "İyi"
+  },
+  "ipv6_rec_no_ipv6": {
+    "en": "Your ISP does not provide IPv6. Contact your ISP for IPv6 support.",
+    "tr": "ISP'niz IPv6 sağlamıyor. IPv6 desteği için ISP'nizle iletişime geçin."
+  },
+  "ipv6_rec_tunnel_only": {
+    "en": "You only have tunnel-based IPv6 (Teredo/6to4). Check with your ISP for real native IPv6.",
+    "tr": "Yalnızca tünel tabanlı IPv6'nız var (Teredo/6to4). Gerçek native IPv6 için ISP'nizi kontrol edin."
+  },
+  "ipv6_rec_dns_broken": {
+    "en": "IPv6 DNS resolution is not working. Check your DNS server (e.g. 2606:4700:4700::1111).",
+    "tr": "IPv6 DNS çözümlemesi çalışmıyor. DNS sunucunuzu kontrol edin (örn. 2606:4700:4700::1111)."
+  },
+  "ipv6_rec_good": {
+    "en": "Your IPv6 implementation looks good.",
+    "tr": "IPv6 implementasyonunuz iyi görünüyor."
+  },
+  "ipv6_phase_connectivity": {
+    "en": "Detecting connection status…",
+    "tr": "Bağlantı durumu tespit ediliyor…"
+  },
+  "ipv6_phase_scoring": {
+    "en": "Calculating quality score…",
+    "tr": "Kalite skoru hesaplanıyor…"
+  },
+  "diag_gaming_test": {
+    "en": "Quick Scan",
+    "tr": "Hızlı Tarama"
+  },
+  "diag_full_test": {
+    "en": "Full Diagnostics",
+    "tr": "Tam Tanılama"
+  },
+  "diag_completed": {
+    "en": "completed",
+    "tr": "tamamlandı"
+  },
+  "diag_running_label": {
+    "en": "running",
+    "tr": "çalışıyor"
+  },
+  "diag_steps": {
+    "en": "steps",
+    "tr": "adım"
+  },
+  "diag_done": {
+    "en": "Done",
+    "tr": "Tamam"
+  },
+  "diag_waiting": {
+    "en": "Waiting",
+    "tr": "Bekliyor"
+  },
+  "diag_step_nic": {
+    "en": "Network Adapters",
+    "tr": "Ağ Adaptörleri"
+  },
+  "diag_step_wifi": {
+    "en": "Wi-Fi Analysis",
+    "tr": "Wi-Fi Analizi"
+  },
+  "diag_step_ping": {
+    "en": "Server Ping",
+    "tr": "Sunucu Ping"
+  },
+  "diag_step_speedtest": {
+    "en": "Speed Test",
+    "tr": "Hız Testi"
+  },
+  "diag_step_bufferbloat": {
+    "en": "Bufferbloat",
+    "tr": "Bufferbloat"
+  },
+  "diag_step_throttle": {
+    "en": "ISP Throttling",
+    "tr": "ISP Daraltma"
+  },
+  "diag_step_isp": {
+    "en": "ISP Intervention",
+    "tr": "ISP Müdahale"
+  },
+  "diag_step_ipv6": {
+    "en": "IPv6 Diagnostics",
+    "tr": "IPv6 Tanılama"
+  },
+  "diag_step_cgnat": {
+    "en": "CGNAT Detection",
+    "tr": "CGNAT Tespiti"
+  },
+  "diag_step_mtu": {
+    "en": "MTU / MSS Discovery",
+    "tr": "MTU / MSS Keşfi"
+  },
+  "diag_step_voip": {
+    "en": "VoIP Quality",
+    "tr": "VoIP Kalitesi"
+  },
+  "diag_step_smart": {
+    "en": "Smart Diagnosis",
+    "tr": "Akıllı Yorumlama"
+  },
+  "status_targets_loaded": {
+    "en": "Test algorithms updated.",
+    "tr": "Güncel test algoritmaları alındı."
+  },
+  "nav_dns_benchmark": {
+    "en": "DNS Benchmark",
+    "tr": "DNS Benchmark"
+  },
+  "tab_dns_benchmark_title": {
+    "en": "DNS Benchmark",
+    "tr": "DNS Benchmark"
+  },
+  "tab_dns_benchmark_sub": {
+    "en": "UDP · DoT · DoH latency & loss test for popular DNS providers",
+    "tr": "Popüler DNS sağlayıcıları için UDP · DoT · DoH gecikme ve paket kaybı testi"
+  },
+  "dns_btn_run": {
+    "en": "Start Benchmark",
+    "tr": "Benchmark Başlat"
+  },
+  "dns_running_title": {
+    "en": "DNS Benchmark Running…",
+    "tr": "DNS Benchmark Çalışıyor…"
+  },
+  "dns_probes_done": {
+    "en": "probes complete",
+    "tr": "probe tamamlandı"
+  },
+  "dns_header_desc": {
+    "en": "Measures latency and packet loss for 7 popular DNS providers across 3 protocols (UDP/53, DoT/853, DoH/HTTPS). 20 queries per protocol, median RTT.",
+    "tr": "7 popüler DNS sağlayıcısını 3 protokol üzerine ölçer (UDP/53, DoT/853, DoH/HTTPS). Protokol başına 20 sorgu, median RTT."
+  },
+  "dns_provider": {
+    "en": "Provider",
+    "tr": "Sağlayıcı"
+  },
+  "dns_best": {
+    "en": "Best",
+    "tr": "En İyi"
+  },
+  "dns_grade": {
+    "en": "Grade",
+    "tr": "Not"
+  },
+  "dns_col_plain": {
+    "en": "Plain DNS · :53",
+    "tr": "Standart DNS · :53"
+  },
+  "dns_col_encrypted": {
+    "en": "Encrypted DNS · DoT / DoH",
+    "tr": "Şifreli DNS · DoT / DoH"
+  },
+  "dns_best_plain": {
+    "en": "Fastest Plain DNS",
+    "tr": "En Hızlı Standart DNS"
+  },
+  "dns_best_encrypted": {
+    "en": "Fastest Encrypted DNS",
+    "tr": "En Hızlı Şifreli DNS"
+  },
+  "dns_proto_udp_desc": {
+    "en": "Classic DNS, port 53",
+    "tr": "Klasik DNS, port 53"
+  },
+  "dns_proto_dot_desc": {
+    "en": "DNS over TLS (RFC 7858), port 853",
+    "tr": "DNS over TLS (RFC 7858), port 853"
+  },
+  "dns_proto_doh_desc": {
+    "en": "DNS over HTTPS (RFC 8484), port 443",
+    "tr": "DNS over HTTPS (RFC 8484), port 443"
+  },
+  "dns_methodology_title": {
+    "en": "Methodology",
+    "tr": "Metot"
+  },
+  "dns_methodology_desc": {
+    "en": "UDP: raw socket per query, 2s timeout. DoT: a single TCP+TLS session reused for all queries, RFC 7858 2-byte length prefix, 3s per-query timeout. DoH: HTTPS POST application/dns-message, RFC 8484, 4s timeout. Metric: median RTT of 20 successful queries.",
+    "tr": "UDP: sorgu başına ham soket, 2sn zaman aşımı. DoT: tüm sorgular tek TCP+TLS oturumunda, RFC 7858 2-byte uzunluk prefix, sorgu başına 3sn. DoH: HTTPS POST application/dns-message, RFC 8484, 4sn. Metrik: 20 başarılı sorgunun median RTT'si."
+  },
+  "nav_wifi_scan": {
+    "en": "Wi-Fi Channel Analysis",
+    "tr": "Wi-Fi Kanal Analizi"
+  },
+  "tab_wifi_scan_title": {
+    "en": "Wi-Fi Channel Analysis",
+    "tr": "Wi-Fi Kanal Analizi"
+  },
+  "tab_wifi_scan_sub": {
+    "en": "Scan nearby networks, find congested channels and get recommendations",
+    "tr": "Yakın ağları tara, kanal kalabalığını bul ve öneri al"
+  },
+  "wifi_scan_btn_scan": {
+    "en": "Scan",
+    "tr": "Tara"
+  },
+  "wifi_scan_btn_scanning": {
+    "en": "Scanning...",
+    "tr": "Taranıyor..."
+  },
+  "wifi_scan_no_adapter": {
+    "en": "No Wi-Fi adapter found",
+    "tr": "Wi-Fi adaptörü bulunamadı"
+  },
+  "wifi_scan_no_adapter_desc": {
+    "en": "This feature requires a wireless network adapter.",
+    "tr": "Bu özellik için kablosuz ağ adaptörü gereklidir."
+  },
+  "wifi_scan_channel_map_title": {
+    "en": "Channel Map",
+    "tr": "Kanal Haritası"
+  },
+  "wifi_scan_networks_title": {
+    "en": "Detected Networks",
+    "tr": "Tespit Edilen Ağlar"
+  },
+  "wifi_scan_col_ssid": {
+    "en": "Network",
+    "tr": "Ağ"
+  },
+  "wifi_scan_col_band": {
+    "en": "Band",
+    "tr": "Band"
+  },
+  "wifi_scan_col_channel": {
+    "en": "Channel",
+    "tr": "Kanal"
+  },
+  "wifi_scan_col_signal": {
+    "en": "Signal",
+    "tr": "Sinyal"
+  },
+  "wifi_scan_col_phy": {
+    "en": "Standard",
+    "tr": "Standart"
+  },
+  "wifi_scan_col_width": {
+    "en": "Width",
+    "tr": "Genişlik"
+  },
+  "wifi_scan_col_bssid": {
+    "en": "BSSID",
+    "tr": "BSSID"
+  },
+  "wifi_scan_connected_badge": {
+    "en": "Connected",
+    "tr": "Bağlı"
+  },
+  "wifi_scan_current_channel": {
+    "en": "Current Channel",
+    "tr": "Mevcut Kanal"
+  },
+  "wifi_scan_recommended_channel": {
+    "en": "Recommended Channel",
+    "tr": "Önerilen Kanal"
+  },
+  "wifi_scan_congestion_score": {
+    "en": "Overlap Score",
+    "tr": "Çakışma Skoru"
+  },
+  "wifi_scan_congestion_low": {
+    "en": "No overlap",
+    "tr": "Çakışma yok"
+  },
+  "wifi_scan_congestion_medium": {
+    "en": "Moderate",
+    "tr": "Orta çakışma"
+  },
+  "wifi_scan_congestion_high": {
+    "en": "Heavy overlap",
+    "tr": "Yoğun çakışma"
+  },
+  "wifi_scan_already_optimal": {
+    "en": "Already on optimal channel",
+    "tr": "Zaten en iyi kanaldasın"
+  },
+  "wifi_scan_networks_count": {
+    "en": "networks detected",
+    "tr": "ağ tespit edildi"
+  },
+  "wifi_scan_idle_title": {
+    "en": "Wi-Fi Channel Analysis",
+    "tr": "Wi-Fi Kanal Analizi"
+  },
+  "wifi_scan_failed": {
+    "en": "Scan Failed",
+    "tr": "Tarama Başarısız"
+  },
+  "stability_detecting_gateway": {
+    "en": "Detecting gateway…",
+    "tr": "Ağ geçidi tespit ediliyor…"
+  },
+  "ipv6_type_tunnel": {
+    "en": "Tunnel",
+    "tr": "Tünel"
+  },
+  "ipv6_type_unknown": {
+    "en": "Unknown",
+    "tr": "Bilinmiyor"
+  },
+  "wifi_scan_band_filter_all": {
+    "en": "All Bands",
+    "tr": "Tüm Bandlar"
+  },
+  "wifi_scan_networks": {
+    "en": "networks",
+    "tr": "ağ"
+  },
+  "wifi_scan_no_networks": {
+    "en": "No networks found in this band",
+    "tr": "Bu bantta ağ bulunamadı"
+  },
+  "tab_stability_title": {
+    "en": "Network Stability",
+    "tr": "Ağ Kararlılığı"
+  },
+  "tab_stability_sub": {
+    "en": "Gateway and internet connectivity monitor",
+    "tr": "Ağ geçidi ve internet bağlantı izleme"
+  },
+  "wifi_scan_optimization_title": {
+    "en": "Wi-Fi Channel Optimization",
+    "tr": "Wi-Fi Kanal Optimizasyonu"
+  },
+  "wifi_scan_error_fallback": {
+    "en": "Wi-Fi scan failed.",
+    "tr": "Wi-Fi tarama başarısız."
+  },
+  "wifi_scan_loading_hint": {
+    "en": "Waiting for scan to complete… (max 4s)",
+    "tr": "Tarama tamamlanana kadar bekleniyor… (max 4s)"
+  },
+  "wifi_scan_retry_btn": {
+    "en": "Retry",
+    "tr": "Tekrar Dene"
+  },
+  "wifi_scan_no_connection_badge": {
+    "en": "No connected network — environment analysis",
+    "tr": "Bağlı ağ yok — ortam analizi"
+  },
+  "wifi_scan_connected_on_channel": {
+    "en": "connected, channel",
+    "tr": "bağlı, kanal"
+  },
+  "wifi_scan_current_band_label": {
+    "en": "← active band",
+    "tr": "← bağlı band"
+  },
+  "wifi_scan_optimal_desc": {
+    "en": "CH {ch} — least congested for this band.",
+    "tr": "CH {ch} — bu band için en az kalabalık."
+  },
+  "wifi_scan_recommended_label": {
+    "en": "Recommended channel:",
+    "tr": "Önerilen kanal:"
+  },
+  "wifi_scan_label_current": {
+    "en": "Current",
+    "tr": "Mevcut"
+  },
+  "wifi_scan_label_recommended": {
+    "en": "Recommended",
+    "tr": "Önerilen"
+  },
+  "wifi_scan_label_best": {
+    "en": "Best",
+    "tr": "En iyi"
+  },
+  "wifi_scan_bw_alternatives_title": {
+    "en": "Channel Width Alternatives",
+    "tr": "Kanal Genişliği Alternatifleri"
+  },
+  "wifi_scan_bw_optimal": {
+    "en": "✓ currently optimal",
+    "tr": "✓ mevcut optimal"
+  },
+  "wifi_scan_bw_least_congested": {
+    "en": "least congested primary",
+    "tr": "en az kalabalık primary"
+  },
+  "wifi_scan_load_analysis_title": {
+    "en": "Channel Load Analysis",
+    "tr": "Kanal Yüklenişi Analizi"
+  },
+  "wifi_scan_channel_empty": {
+    "en": "EMPTY",
+    "tr": "BOŞ"
+  },
+  "wifi_scan_channel_recommended": {
+    "en": "★ RECOMMENDED",
+    "tr": "★ ÖNERİLEN"
+  },
+  "wifi_scan_channel_current": {
+    "en": "CURRENT",
+    "tr": "MEVCUT"
+  },
+  "wifi_scan_note_24_ref": {
+    "en": "IEEE 802.11-2020 §17.3.9.3",
+    "tr": "IEEE 802.11-2020 §17.3.9.3"
+  },
+  "wifi_scan_note_24_detail": {
+    "en": "In the 2.4 GHz band, only channels 1, 6 and 11 are non-overlapping (22 MHz channel width). Other channels cause interference with neighboring networks, degrading performance. APs with the same MAC OUI (virtual BSS) were excluded from the interference calculation.",
+    "tr": "2.4 GHz bandında sadece kanal 1, 6 ve 11 birbirleriyle örtüşmez (22 MHz kanal genişliği). Diğer kanallar komşu ağlarla parazit yaratarak performansı düşürür. Aynı MAC OUI'li AP'ler (sanal BSS) parazit hesabına dahil edilmedi."
+  },
+  "wifi_scan_note_5_ref": {
+    "en": "FCC Part 15E / ETSI EN 301 893",
+    "tr": "FCC Part 15E / ETSI EN 301 893"
+  },
+  "wifi_scan_note_5_detail": {
+    "en": "UNII-1/UNII-3 channels do not require DFS — no radar check, the router will not change channel. DFS channels (UNII-2A/2C) are recommended only when there is a clear advantage. APs with the same OUI (multi-SSID / virtual BSS) were excluded.",
+    "tr": "UNII-1/UNII-3 kanalları DFS gerektirmez — radar check yok, router kanal değiştirmez. DFS kanalları (UNII-2A/2C) yalnızca belirgin avantajda önerilir. Aynı OUI'li AP'ler (multi-SSID / sanal BSS) hariç tutuldu."
+  },
+  "wifi_scan_note_6_ref": {
+    "en": "IEEE 802.11ax-2021 (Wi-Fi 6E/7) PSC",
+    "tr": "IEEE 802.11ax-2021 (Wi-Fi 6E/7) PSC"
+  },
+  "wifi_scan_note_6_detail": {
+    "en": "Preferred Scanning Channel (PSC) — devices discover APs much faster on these channels. ETSI EN 303 687 compliant. Virtual BSSes excluded.",
+    "tr": "Preferred Scanning Channel (PSC) — cihazlar bu kanalda AP keşfini çok daha hızlı yapar. ETSI EN 303 687 uyumlu. Sanal BSS'ler hariç tutuldu."
+  },
+  "wifi_scan_howto": {
+    "en": "Router → Wireless → {band} → Channel → Manual → {ch} → Save.",
+    "tr": "Router → Wireless → {band} → Channel → Manuel → {ch} → Kaydet."
+  },
+  "wifi_scan_status_scanning": {
+    "en": "Scanning…",
+    "tr": "Taranıyor…"
+  },
+  "wifi_scan_status_updated": {
+    "en": "✓ Updated",
+    "tr": "✓ Güncellendi"
+  },
+  "wifi_scan_auto_scan_label": {
+    "en": "Auto Scan",
+    "tr": "Otomatik Tarama"
+  },
+  "wifi_scan_auto_active": {
+    "en": "Auto {countdown}s",
+    "tr": "Oto {countdown}s"
+  },
+  "wifi_scan_rescan_btn": {
+    "en": "Rescan",
+    "tr": "Yeniden Tara"
+  },
+  "nav_stability": {
+    "en": "Network Stability",
+    "tr": "Ağ Kararlılığı"
+  },
+  "stability_title": {
+    "en": "Network Stability Monitor",
+    "tr": "Ağ Kararlılık Monitörü"
+  },
+  "stability_start": {
+    "en": "Start Monitoring",
+    "tr": "İzlemeyi Başlat"
+  },
+  "stability_stop": {
+    "en": "Stop",
+    "tr": "Durdur"
+  },
+  "stability_gateway": {
+    "en": "Gateway",
+    "tr": "Ağ Geçidi"
+  },
+  "stability_wan": {
+    "en": "Internet (1.1.1.1)",
+    "tr": "Internet (1.1.1.1)"
+  },
+  "stability_outage_log": {
+    "en": "Outage Log",
+    "tr": "Kopma Kaydı"
+  },
+  "stability_no_outages": {
+    "en": "No outages detected",
+    "tr": "Kopma tespit edilmedi"
+  },
+  "stability_outage_gateway": {
+    "en": "Gateway unreachable",
+    "tr": "Ağ geçidi erişilemez"
+  },
+  "stability_outage_wan": {
+    "en": "Internet unreachable",
+    "tr": "Internet erişilemez"
+  },
+  "stability_outage_full": {
+    "en": "Full outage",
+    "tr": "Tam kopma"
+  },
+  "stability_outage_end": {
+    "en": "Restored",
+    "tr": "Bağlantı döndü"
+  },
+  "stability_rtt_chart": {
+    "en": "RTT History",
+    "tr": "RTT Geçmişi"
+  },
+  "stability_samples": {
+    "en": "samples",
+    "tr": "ölçüm"
+  },
+  "stability_startup": {
+    "en": "Launch on startup",
+    "tr": "Başlangıçta çalıştır"
+  },
+  "stability_startup_desc": {
+    "en": "NetVeil starts minimized to tray when Windows boots",
+    "tr": "Windows açılışında NetVeil tray'de başlar"
+  },
+  "stability_status_ok": {
+    "en": "Connected",
+    "tr": "Bağlı"
+  },
+  "stability_status_degraded": {
+    "en": "Degraded",
+    "tr": "Sorunlu"
+  },
+  "stability_status_down": {
+    "en": "Disconnected",
+    "tr": "Bağlantı Yok"
+  },
+  "stability_idle_title": {
+    "en": "Network Stability Monitor",
+    "tr": "Ağ Kararlılık Monitörü"
+  },
+  "stability_idle_desc": {
+    "en": "Monitors gateway and WAN ping every 5 seconds. Detects outages and logs them with timestamps. Runs continuously until you stop it.",
+    "tr": "Ağ geçidi ve WAN ping'ini 5 saniyede bir ölçer. Kopmaları zaman damgasıyla kaydeder. Siz durdurana kadar sürekli çalışır."
+  },
+  "tab_settings_title": {
+    "en": "Settings",
+    "tr": "Ayarlar"
+  },
+  "tab_settings_sub": {
+    "en": "Application preferences and language",
+    "tr": "Uygulama tercihleri ve dil"
+  },
+  "settings_ui_scale": {
+    "en": "UI Scale",
+    "tr": "Arayüz Ölçeği"
+  },
+  "settings_content_scale": {
+    "en": "Content Size",
+    "tr": "İçerik Boyutu"
+  },
+  "nav_dns_leak": {
+    "en": "DNS Leak",
+    "tr": "DNS Sızıntısı"
+  },
+  "tab_dns_leak_title": {
+    "en": "DNS & IP Leak Audit",
+    "tr": "DNS ve IP Sızıntı Denetimi"
+  },
+  "tab_dns_leak_sub": {
+    "en": "Checks whether your DNS queries leak through your real connection",
+    "tr": "DNS sorgularınızın gerçek bağlantınız üzerinden sızıp sızmadığını denetler"
+  },
+  "dns_leak_intro_title": {
+    "en": "DNS & IP Leak Audit",
+    "tr": "DNS ve IP Sızıntı Denetimi"
+  },
+  "dns_leak_intro_desc": {
+    "en": "This test measures your application's DNS and UDP traffic exit paths by querying an echo resolver and STUN server, then compares these with your WAN IP to determine if any DNS queries are leaking through your real connection.\n\nEstimated time: ~5 sec",
+    "tr": "Bu test, bir echo resolver ve STUN sunucusu sorgulayarak uygulamanızın DNS ve UDP trafiğinin çıkış yollarını ölçer, ardından bu bilgileri WAN IP'nizle karşılaştırarak DNS sorgularının gerçek bağlantınız üzerinden sızıp sızmadığını belirler.\n\nTahmini test süresi: ~5 sn"
+  },
+  "dns_leak_run_btn": {
+    "en": "Run Audit",
+    "tr": "Denetimi Çalıştır"
+  },
+  "dns_leak_running": {
+    "en": "Auditing DNS & IP exit path...",
+    "tr": "DNS ve IP çıkış yolu denetleniyor..."
+  },
+  "dns_leak_verdict_safe": {
+    "en": "No DNS Leak",
+    "tr": "DNS Sızıntısı Yok"
+  },
+  "dns_leak_verdict_normal": {
+    "en": "Normal (ISP DNS)",
+    "tr": "Normal (ISP DNS)"
+  },
+  "dns_leak_verdict_leak": {
+    "en": "DNS Leak Detected",
+    "tr": "DNS Sızıntısı Tespit Edildi"
+  },
+  "dns_leak_verdict_unknown": {
+    "en": "Could Not Determine",
+    "tr": "Belirlenemedi"
+  },
+  "dns_leak_detail_safe": {
+    "en": "DNS queries exit through a different IP than your WAN (third-party/DoH/VPN DNS) — they are not leaking through your real connection.",
+    "tr": "DNS sorguları, WAN IP'nizden farklı bir IP üzerinden çıkış yapar (üçüncü parti/DoH/VPN DNS) — bu durumda gerçek bağlantınız üzerinden sızıntı olmaz."
+  },
+  "dns_leak_detail_normal": {
+    "en": "No VPN active; your DNS exits through your own ISP connection. This is expected behavior, not a leak.",
+    "tr": "Aktif bir VPN bulunmamaktadır; DNS sorgularınız kendi ISP bağlantınız üzerinden çıkış yapar. Bu beklenen bir durumdur, sızıntı değildir."
+  },
+  "dns_leak_detail_leak": {
+    "en": "A VPN is active but your DNS queries still exit through your real connection IP — DNS is bypassing the VPN tunnel (a real leak).",
+    "tr": "Bir VPN aktif olmasına rağmen DNS sorgularınız hala gerçek bağlantınızın IP'si üzerinden çıkış yapar — bu durumda DNS, VPN tünelinden kaçırılmıştır (gerçek bir sızıntı)."
+  },
+  "dns_leak_detail_unknown": {
+    "en": "The DNS exit IP or WAN IP could not be measured, so no conclusion can be drawn.",
+    "tr": "DNS çıkış IP'si veya WAN IP'si ölçülemediği için herhangi bir sonuç çıkarılamaz."
+  },
+  "dns_leak_udp_match": {
+    "en": "UDP traffic exits through the same IP as your connection — consistent.",
+    "tr": "UDP trafiği bağlantınızın aynı IP'si üzerinden çıkış yapar — tutarlı."
+  },
+  "dns_leak_udp_mismatch": {
+    "en": "UDP traffic exits through a different IP — your VPN may not cover UDP (split-tunnel).",
+    "tr": "UDP trafiği farklı bir IP üzerinden çıkış yapar — VPN'iniz UDP'yi kapsamıyor olabilir (split-tunnel)."
+  },
+  "dns_leak_udp_unknown": {
+    "en": "UDP exit IP could not be measured.",
+    "tr": "UDP çıkış IP'si ölçülemedi."
+  },
+  "dns_leak_lbl_system_dns": {
+    "en": "System DNS Servers",
+    "tr": "Sistem DNS Sunucuları"
+  },
+  "dns_leak_lbl_egress": {
+    "en": "DNS Exit IP",
+    "tr": "DNS Çıkış IP'si"
+  },
+  "dns_leak_lbl_wan": {
+    "en": "WAN Public IP",
+    "tr": "WAN Genel IP"
+  },
+  "dns_leak_lbl_stun": {
+    "en": "UDP Exit IP (STUN)",
+    "tr": "UDP Çıkış IP'si (STUN)"
+  },
+  "dns_leak_lbl_vpn": {
+    "en": "VPN Active",
+    "tr": "VPN Aktif"
+  },
+  "dns_leak_udp_section": {
+    "en": "UDP / STUN IP Check",
+    "tr": "UDP / STUN IP Kontrolü"
+  },
+  "dns_leak_yes": {
+    "en": "Yes",
+    "tr": "Evet"
+  },
+  "dns_leak_no": {
+    "en": "No",
+    "tr": "Hayır"
+  },
+  "dns_leak_webrtc_note": {
+    "en": "This test measures the application's own DNS and UDP traffic. Browser WebRTC leaks are a separate matter (a browser-side concern) and are not measured here.",
+    "tr": "Bu test, uygulamanın kendi DNS ve UDP trafiğini ölçer. Tarayıcı WebRTC sızıntıları ayrı bir konudur (tarayıcı tarafı bir endişe) ve burada ölçülmez."
+  },
+  "isp_phase_captive_portal_label": {
+    "en": "Captive Portal",
+    "tr": "Captive Portal"
+  },
+  "isp_phase_captive_portal_desc": {
+    "en": "Checks whether your connection is forcibly redirected to a login/intermediary page.",
+    "tr": "Bağlantınızın bir giriş/ara sayfaya zorla yönlendirilip yönlendirilmediğini denetler."
+  },
+  "isp_extra_captive_redirect": {
+    "en": "Redirect: ",
+    "tr": "Yönlendirme: "
+  },
+  "isp_extra_providers_ok": {
+    "en": "Reachable: ",
+    "tr": "Erişilebilir: "
+  },
+  "isp_phase_dnssec_label": {
+    "en": "DNSSEC Validation",
+    "tr": "DNSSEC Doğrulama"
+  },
+  "isp_phase_dnssec_desc": {
+    "en": "Checks whether your DNS resolver validates DNSSEC signatures (rejects forged records from signed zones).",
+    "tr": "DNS resolver'ınızın DNSSEC imzalarını doğrulayıp doğrulamadığını denetler (imzalı bölgelerden gelen sahte kayıtları reddeder mi)."
+  },
+  "isp_verdict_validating": {
+    "en": "Validating",
+    "tr": "Doğruluyor"
+  },
+  "isp_verdict_info": {
+    "en": "Info",
+    "tr": "Bilgi"
+  },
+  "isp_extra_dnssec_resolver": {
+    "en": "Resolver: ",
+    "tr": "Resolver: "
+  },
+  "isp_extra_dnssec_note": {
+    "en": "Note: DNSSEC does not encrypt the path to the resolver — DoT/DoH is needed for that.",
+    "tr": "Not: DNSSEC, resolver'a giden yolu şifrelemez — bunun için DoT/DoH gerekir."
+  },
+  "isp_phase_ech_label": {
+    "en": "ECH Config Delivery",
+    "tr": "ECH Config Teslimi"
+  },
+  "isp_phase_ech_desc": {
+    "en": "Checks whether the Encrypted Client Hello (ECH) configuration is delivered by your DNS resolver, compared to a public resolver.",
+    "tr": "Encrypted Client Hello (ECH) yapılandırmasının DNS resolver'ınız tarafından teslim edilip edilmediğini bir public resolver ile karşılaştırarak denetler."
+  },
+  "isp_extra_ech_system": {
+    "en": "System resolver: ",
+    "tr": "Sistem resolver: "
+  },
+  "isp_extra_ech_public": {
+    "en": "Public resolver (1.1.1.1): ",
+    "tr": "Public resolver (1.1.1.1): "
+  },
+  "isp_extra_ech_present": {
+    "en": "ECH config present",
+    "tr": "ECH config var"
+  },
+  "isp_extra_ech_absent": {
+    "en": "ECH config absent",
+    "tr": "ECH config yok"
+  },
+  "isp_extra_ech_note": {
+    "en": "Note: this checks DNS config delivery only, not the TLS handshake.",
+    "tr": "Not: bu yalnızca DNS config teslimini kontrol eder, TLS el sıkışmasını değil."
+  },
+  "gfn_cloud_edge": {
+    "en": "GFN cloud edge — TCP RTT",
+    "tr": "GFN bulut edge — TCP RTT"
+  },
+  "gfn_tcp_note": {
+    "en": "Measured via TCP/443 — ICMP is blocked on GeForce NOW edges",
+    "tr": "TCP/443 ile ölçüldü — GeForce NOW edge'lerinde ICMP bloklu"
+  },
+  "gfn_empty_hint": {
+    "en": "Run the test to measure and rank your nearest GeForce NOW edges by latency.",
+    "tr": "En yakın GeForce NOW sunucularını gecikmeye göre ölçüp sıralamak için testi başlatın."
+  },
+  "games_loss_cap_toggle": {
+    "en": "Include packet loss in grade",
+    "tr": "Paket kaybını nota dahil et"
+  },
+  "games_loss_cap_hint": {
+    "en": "Disable if ISP-side false-positive ICMP loss is inflating your grades — ICMP loss may not reflect real game (UDP) traffic.",
+    "tr": "ISP kaynaklı yanlış-pozitif ICMP kaybı notlarınızı bozuyorsa kapatın — ICMP kaybı gerçek oyun (UDP) trafiğini yansıtmayabilir."
+  },
+  "games_loss_cap_label": {
+    "en": "Loss Cap",
+    "tr": "Kayıp Etkisi"
+  },
+  "steam_empty_hint": {
+    "en": "Run the test to measure and rank your nearest Steam/Valve edges by latency.",
+    "tr": "En yakın Steam/Valve sunucularını gecikmeye göre ölçüp sıralamak için testi başlatın."
+  },
+  "nav_voip_quality": {
+    "en": "VoIP Quality",
+    "tr": "VoIP Kalitesi"
+  },
+  "tab_voip_title": {
+    "en": "VoIP Quality",
+    "tr": "VoIP Kalitesi"
+  },
+  "tab_voip_sub": {
+    "en": "Active UDP probe — voice MOS (G.711 E-model)",
+    "tr": "Aktif UDP probe — sesli iletişim MOS (G.711 E-model)"
+  },
+  "voip_intro_title": {
+    "en": "VoIP Quality Test",
+    "tr": "VoIP Kalite Testi"
+  },
+  "voip_intro_desc": {
+    "en": "Sends active UDP probes to netveil.net mimicking real VoIP (G.711) traffic. Measures RTT, jitter, and packet loss; calculates ITU-T E-model MOS score. Does not saturate your connection — uses only ~100 kbps.\n\nEstimated time: ~10 sec",
+    "tr": "Gerçek VoIP (G.711) trafiğini taklit eden aktif UDP probe'ları gönderir. RTT, jitter ve paket kaybını ölçer; ITU-T E-model MOS skoru hesaplar. Bağlantınızı doyurmaz — yalnızca ~100 kbps kullanır.\n\nTahmini test süresi: ~10 sn"
+  },
+  "voip_run_btn": {
+    "en": "Start UDP Quality Test",
+    "tr": "UDP Kalite Testi Başlat"
+  },
+  "voip_running": {
+    "en": "Running UDP probes…",
+    "tr": "UDP probe'ları çalışıyor…"
+  },
+  "voip_card_voice": {
+    "en": "VoIP (Voice) — MOS Score",
+    "tr": "VoIP (Ses) — MOS Skoru"
+  },
+  "voip_mos": {
+    "en": "MOS Score",
+    "tr": "MOS Skoru"
+  },
+  "voip_grade": {
+    "en": "Packets",
+    "tr": "Paketler"
+  },
+  "voip_pkts_label": {
+    "en": "received",
+    "tr": "alındı"
+  },
+  "voip_rtt": {
+    "en": "RTT (avg/min/max)",
+    "tr": "RTT (ort/min/maks)"
+  },
+  "voip_jitter": {
+    "en": "Jitter",
+    "tr": "Jitter"
+  },
+  "voip_loss": {
+    "en": "Packet Loss",
+    "tr": "Paket Kaybı"
+  },
+  "voip_method_title": {
+    "en": "ℹ Methodology & Accuracy Notes",
+    "tr": "ℹ Metodoloji ve Doğruluk Notları"
+  },
+  "voip_note_rtt2": {
+    "en": "One-way delay = RTT÷2 (symmetric assumption). Asymmetric links may differ.",
+    "tr": "Tek-yön gecikme = RTT÷2 (simetrik varsayım). Asimetrik hatlarda farklı olabilir."
+  },
+  "voip_note_mos_estimate": {
+    "en": "MOS is an ITU-T G.107 E-model estimate for planning — not a measured user perception score.",
+    "tr": "MOS, planlama amaçlı ITU-T G.107 E-model tahminidir — gerçek kullanıcı algısı değildir."
+  },
+  "voip_note_codec": {
+    "en": "G.711 64 kbps PCM codec assumed. G.729/Opus/Opus-HD thresholds differ.",
+    "tr": "G.711 64 kbps PCM codec varsayılmıştır. G.729/Opus eşikleri farklıdır."
+  },
+  "voip_note_server": {
+    "en": "Measured to netveil.net Frankfurt. Real Zoom/Teams/Discord endpoints may differ.",
+    "tr": "Ölçüm hedefi: netveil.net Frankfurt. Gerçek Zoom/Teams/Discord sunucuları farklı olabilir."
+  },
+  "voip_note_qos": {
+    "en": "UDP probes are not DSCP EF marked — your ISP may treat real VoIP differently.",
+    "tr": "UDP probe'ları DSCP EF işaretli değil — ISP'niz gerçek VoIP'e farklı muamele edebilir."
+  },
+  "voip_note_loaded": {
+    "en": "Measures idle-line quality. Under load, check the Bufferbloat module for VoIP performance.",
+    "tr": "Boş hat kalitesini ölçer. Yük altında VoIP performansı için Bufferbloat modülüne bakın."
+  },
+  "voip_g711_note": {
+    "en": "E-model (G.107): G.711 codec assumed. MOS ≥ 4.0 = Good, ≥ 3.6 = Acceptable, ≥ 3.1 = Fair, < 2.6 = Poor.",
+    "tr": "E-model (G.107): G.711 codec varsayıldı. MOS ≥ 4.0 = İyi, ≥ 3.6 = Kabul edilebilir, ≥ 3.1 = Orta, < 2.6 = Zayıf."
+  },
+  "voip_error": {
+    "en": "Test failed",
+    "tr": "Test başarısız"
+  },
+  "diag_mod_voip": {
+    "en": "VoIP Quality",
+    "tr": "VoIP Kalitesi"
+  },
+  "diag_voip_Aplus": {
+    "en": "Excellent VoIP quality (MOS ≥ 4.3). Crystal-clear calls — conference and HD voice fully supported.",
+    "tr": "Mükemmel VoIP kalitesi (MOS ≥ 4.3). Kristal netliğinde aramalar — konferans ve HD ses tam destekli."
+  },
+  "diag_voip_A": {
+    "en": "Very good VoIP quality (MOS ≥ 4.0). All voice applications work reliably.",
+    "tr": "Çok iyi VoIP kalitesi (MOS ≥ 4.0). Tüm ses uygulamaları güvenilir şekilde çalışır."
+  },
+  "diag_voip_B": {
+    "en": "Good VoIP quality (MOS ≥ 3.6). Calls are clear with only minor occasional degradation.",
+    "tr": "İyi VoIP kalitesi (MOS ≥ 3.6). Aramalar net, yalnızca ara sıra küçük bozulma olabilir."
+  },
+  "diag_voip_C": {
+    "en": "Acceptable VoIP quality (MOS ≥ 3.1). Calls are usable but some users notice quality issues.",
+    "tr": "Kabul edilebilir VoIP kalitesi (MOS ≥ 3.1). Aramalar kullanılabilir ancak bazı kullanıcılar kalite sorunları fark edebilir."
+  },
+  "diag_voip_D": {
+    "en": "Poor VoIP quality (MOS ≥ 2.6). Calls are difficult — significant distortion and dropouts expected.",
+    "tr": "Zayıf VoIP kalitesi (MOS ≥ 2.6). Aramalar güç — önemli bozulma ve kopma beklenir."
+  },
+  "diag_voip_F": {
+    "en": "Unacceptable VoIP quality (MOS < 2.6). Voice calls are barely intelligible. Check latency, jitter, and packet loss.",
+    "tr": "Kabul edilemez VoIP kalitesi (MOS < 2.6). Sesli aramalar neredeyse anlaşılamaz. Gecikme, jitter ve paket kaybını kontrol edin."
+  },
+  "diag_voip_unavailable": {
+    "en": "VoIP test not run in this session.",
+    "tr": "Bu oturumda VoIP testi yapılmadı."
+  },
+  "diag_dns_benchmark_Aplus": {
+    "en": "Excellent DNS resolution (≤ 10 ms). Lookups are near-instant — fastest possible page loads.",
+    "tr": "Mükemmel DNS çözümleme (≤ 10 ms). Sorgular neredeyse anlık — mümkün olan en hızlı sayfa açılışı."
+  },
+  "diag_dns_benchmark_A": {
+    "en": "Very fast DNS resolution (≤ 20 ms). Typical of Cloudflare/Google resolvers — excellent.",
+    "tr": "Çok hızlı DNS çözümleme (≤ 20 ms). Cloudflare/Google çözücüleri seviyesinde — mükemmel."
+  },
+  "diag_dns_benchmark_B": {
+    "en": "Good DNS resolution (≤ 40 ms). Page loads feel responsive.",
+    "tr": "İyi DNS çözümleme (≤ 40 ms). Sayfa açılışları akıcı hissettirir."
+  },
+  "diag_dns_benchmark_C": {
+    "en": "Moderate DNS resolution (≤ 70 ms). Slight delay before pages start loading.",
+    "tr": "Orta DNS çözümleme (≤ 70 ms). Sayfalar açılmaya başlamadan önce hafif gecikme."
+  },
+  "diag_dns_benchmark_D": {
+    "en": "Slow DNS resolution (≤ 120 ms). A faster resolver (e.g. 1.1.1.1, 8.8.8.8) is recommended.",
+    "tr": "Yavaş DNS çözümleme (≤ 120 ms). Daha hızlı bir çözücü önerilir (örn. 1.1.1.1, 8.8.8.8)."
+  },
+  "diag_dns_benchmark_F": {
+    "en": "Very slow DNS resolution (> 120 ms). Switch to a faster public resolver for noticeably quicker browsing.",
+    "tr": "Çok yavaş DNS çözümleme (> 120 ms). Belirgin şekilde daha hızlı gezinti için hızlı bir genel çözücüye geçin."
+  },
+  "diag_dns_benchmark_unavailable": {
+    "en": "DNS Benchmark not run in this session.",
+    "tr": "Bu oturumda DNS Benchmark yapılmadı."
+  },
+  "diag_twitch_Aplus": {
+    "en": "Excellent Twitch ingest latency (≤ 20 ms). Ideal for low-latency streaming.",
+    "tr": "Mükemmel Twitch ingest gecikmesi (≤ 20 ms). Düşük gecikmeli yayın için ideal."
+  },
+  "diag_twitch_A": {
+    "en": "Very good Twitch ingest latency (≤ 40 ms). Stable, responsive streaming.",
+    "tr": "Çok iyi Twitch ingest gecikmesi (≤ 40 ms). Kararlı, akıcı yayın."
+  },
+  "diag_twitch_B": {
+    "en": "Good Twitch ingest latency (≤ 70 ms). Streaming works well.",
+    "tr": "İyi Twitch ingest gecikmesi (≤ 70 ms). Yayın sorunsuz çalışır."
+  },
+  "diag_twitch_C": {
+    "en": "Moderate Twitch ingest latency (≤ 120 ms). Usable but a closer ingest server would help.",
+    "tr": "Orta Twitch ingest gecikmesi (≤ 120 ms). Kullanılabilir ancak daha yakın bir ingest sunucusu faydalı olur."
+  },
+  "diag_twitch_D": {
+    "en": "High Twitch ingest latency (≤ 200 ms). Stream stability may suffer — try a nearer ingest.",
+    "tr": "Yüksek Twitch ingest gecikmesi (≤ 200 ms). Yayın kararlılığı etkilenebilir — daha yakın bir ingest deneyin."
+  },
+  "diag_twitch_F": {
+    "en": "Very high Twitch ingest latency (> 200 ms). Streaming will be unreliable from this location.",
+    "tr": "Çok yüksek Twitch ingest gecikmesi (> 200 ms). Bu konumdan yayın güvenilmez olacaktır."
+  },
+  "diag_twitch_unavailable": {
+    "en": "Twitch test not run in this session.",
+    "tr": "Bu oturumda Twitch testi yapılmadı."
+  },
+  "insight_dns_fast": {
+    "en": "Fast DNS resolver — pages start loading almost immediately after you click.",
+    "tr": "Hızlı DNS çözücü — tıkladıktan hemen sonra sayfalar açılmaya başlar."
+  },
+  "insight_dns_moderate": {
+    "en": "Moderate DNS speed — acceptable, but a faster resolver can shave off load time.",
+    "tr": "Orta DNS hızı — kabul edilebilir, ancak daha hızlı bir çözücü yüklenme süresini kısaltabilir."
+  },
+  "insight_dns_slow": {
+    "en": "Slow DNS resolver adds delay to every new site. Consider 1.1.1.1 or 8.8.8.8.",
+    "tr": "Yavaş DNS çözücü her yeni siteye gecikme ekler. 1.1.1.1 veya 8.8.8.8 düşünün."
+  },
+  "insight_twitch_low": {
+    "en": "Low ingest latency — your stream reaches Twitch quickly and stays in sync.",
+    "tr": "Düşük ingest gecikmesi — yayınınız Twitch'e hızlı ulaşır ve senkron kalır."
+  },
+  "insight_twitch_moderate": {
+    "en": "Moderate ingest latency — streaming is fine; a closer server would be marginally better.",
+    "tr": "Orta ingest gecikmesi — yayın sorunsuz; daha yakın bir sunucu az da olsa daha iyi olur."
+  },
+  "insight_twitch_high": {
+    "en": "High ingest latency may cause buffering or sync issues. Pick the nearest ingest server.",
+    "tr": "Yüksek ingest gecikmesi tamponlama veya senkron sorunlarına yol açabilir. En yakın ingest sunucusunu seçin."
+  },
+  "insight_voip_excellent": {
+    "en": "MOS ≥ 4.0 — excellent call quality, suitable for HD voice and video conferencing.",
+    "tr": "MOS ≥ 4.0 — mükemmel arama kalitesi, HD ses ve video konferans için uygun."
+  },
+  "insight_voip_good": {
+    "en": "MOS ≥ 3.6 — good call quality, most users satisfied.",
+    "tr": "MOS ≥ 3.6 — iyi arama kalitesi, çoğu kullanıcı memnun."
+  },
+  "insight_voip_acceptable": {
+    "en": "MOS ≥ 3.1 — acceptable quality, some users may notice slight degradation.",
+    "tr": "MOS ≥ 3.1 — kabul edilebilir kalite, bazı kullanıcılar hafif bozulma fark edebilir."
+  },
+  "insight_voip_poor": {
+    "en": "MOS < 3.1 — poor call quality, voice is noticeably degraded. Reduce latency and packet loss.",
+    "tr": "MOS < 3.1 — zayıf arama kalitesi, ses belirgin şekilde bozulmuş. Gecikme ve paket kaybını azaltın."
+  },
+  "insight_voip_udp_real": {
+    "en": "Real UDP probes (not ICMP) — directly simulates VoIP traffic patterns.",
+    "tr": "Gerçek UDP probe (ICMP değil) — VoIP trafik desenini doğrudan simüle eder."
+  },
+  "insight_voip_emodel_estimate": {
+    "en": "E-model estimate: actual experience may differ with real codec/QoS configuration.",
+    "tr": "E-model tahmini: gerçek codec/QoS yapılandırmasıyla deneyim farklılık gösterebilir."
+  },
+  "nav_lan_scanner": {
+    "en": "LAN Scanner",
+    "tr": "LAN Tarayıcı"
+  },
+  "tab_lan_scanner_title": {
+    "en": "LAN IP Scanner",
+    "tr": "LAN IP Tarayıcı"
+  },
+  "tab_lan_scanner_sub": {
+    "en": "Discover devices on your local network",
+    "tr": "Yerel ağınızdaki cihazları keşfedin"
+  },
+  "lan_intro_title": {
+    "en": "LAN IP Scanner",
+    "tr": "LAN IP Tarayıcı"
+  },
+  "lan_intro_desc": {
+    "en": "Scan your local network to discover active devices: IP, MAC, vendor, hostname, response time and open ports. Only the same /24 subnet is scanned.",
+    "tr": "Yerel ağınızdaki aktif cihazları keşfedin: IP, MAC, üretici, sunucu adı, yanıt süresi ve açık portlar. Yalnızca aynı /24 alt ağı taranır."
+  },
+  "lan_scan_run_btn": {
+    "en": "Scan Network",
+    "tr": "Ağı Tara"
+  },
+  "lan_scan_running": {
+    "en": "Scanning LAN...",
+    "tr": "LAN Taranıyor..."
+  },
+  "lan_col_ip": {
+    "en": "IP Address",
+    "tr": "IP Adresi"
+  },
+  "lan_col_mac": {
+    "en": "MAC",
+    "tr": "MAC"
+  },
+  "lan_col_hostname": {
+    "en": "Hostname",
+    "tr": "Sunucu Adı"
+  },
+  "lan_col_rtt": {
+    "en": "RTT (ms)",
+    "tr": "RTT (ms)"
+  },
+  "lan_col_ports": {
+    "en": "Open Ports",
+    "tr": "Açık Portlar"
+  },
+  "lan_honesty_note": {
+    "en": "Only the same /24 subnet is scanned. Devices behind VLANs or other segments are not visible. Devices that do not respond to ICMP are detected via ARP and TCP.",
+    "tr": "Yalnızca aynı /24 alt ağı taranır. VLAN veya diğer segmentlerin arkasındaki cihazlar görülemez. ICMP'ye yanıt vermeyen cihazlar ARP ve TCP ile tespit edilmeye çalışılır."
+  },
+  "lan_randomized_mac": {
+    "en": "Randomized MAC",
+    "tr": "Rastgele MAC"
+  },
+  "lan_manual_placeholder": {
+    "en": "Auto (LAN) — or enter 192.168.1.0",
+    "tr": "Otomatik (LAN) — veya 192.168.1.0"
+  },
+  "lan_err_not_private": {
+    "en": "Only private network (LAN) addresses can be scanned. Public/WAN addresses are not allowed.",
+    "tr": "Yalnızca özel ağ (LAN) adresleri taranabilir. Public/WAN adresleri taranamaz."
+  },
+  "lan_footnote_title": {
+    "en": "Methodology",
+    "tr": "Metodoloji"
+  },
+  "lan_footnote_ports": {
+    "en": "• Scanned ports: HTTP(80), HTTPS(443), SSH(22), SMB(445), RDP(3389), DNS(53), NetBIOS(139), Printer(9100), UPnP(5000), HTTP-Alt(8080). Open ports hint at the device type.",
+    "tr": "• Taranan portlar: HTTP(80), HTTPS(443), SSH(22), SMB(445), RDP(3389), DNS(53), NetBIOS(139), Yazıcı(9100), UPnP(5000), HTTP-Alt(8080). Açık portlar cihaz türü hakkında ipucu verir."
+  },
+  "lan_footnote_vendor": {
+    "en": "• Vendor is resolved from the MAC's first 3 bytes (OUI) via netveil.net; only the manufacturer block is queried — the full MAC (device identity) is never sent or stored. Devices using a randomized MAC show no vendor.",
+    "tr": "• Üretici, MAC adresinin ilk 3 hanesinden (OUI) netveil.net üzerinden çözülür; yalnızca üretici bloğu sorgulanır — tam MAC (cihaz kimliği) gönderilmez/saklanmaz. Rastgele MAC kullanan cihazlarda üretici görünmez."
+  },
+  "lan_footnote_mdns": {
+    "en": "• Hostname resolution may request local network (mDNS) permission — it works only on your LAN and has no internet access.",
+    "tr": "• Sunucu adı çözümü için yerel ağ (mDNS) izni istenebilir — yalnızca yerel ağınızda çalışır, internet erişimi yoktur."
+  },
+  "lan_footnote_scope": {
+    "en": "• Only the same /24 subnet (same broadcast domain) is reachable; devices behind VLANs/segments are not seen.",
+    "tr": "• Yalnızca aynı /24 alt ağı (aynı yayın alanı) erişilebilir; VLAN/segment arkasındaki cihazlar görülmez."
+  },
+  "lan_scan_subnet_label": {
+    "en": "Subnet",
+    "tr": "Alt Ağ"
+  },
+  "lan_scan_found": {
+    "en": "Devices Found",
+    "tr": "Bulunan Cihaz"
+  },
+  "lan_scan_duration": {
+    "en": "Scan Duration",
+    "tr": "Tarama Süresi"
+  },
+  "lan_scan_stop_btn": {
+    "en": "Stop",
+    "tr": "Durdur"
+  },
+  "lan_scan_empty": {
+    "en": "No devices found. Click \"Scan Network\" to start.",
+    "tr": "Cihaz bulunamadı. Taramayı başlatmak için \"Ağı Tara\" butonuna tıklayın."
+  },
+  "nav_lan_speed": {
+    "en": "LAN Speed Test",
+    "tr": "LAN Hız Testi"
+  },
+  "tab_lan_speed_title": {
+    "en": "LAN Speed Test",
+    "tr": "LAN Hız Testi"
+  },
+  "tab_lan_speed_sub": {
+    "en": "TCP multi-stream throughput between two NetVeil instances on the same LAN",
+    "tr": "Aynı LAN’daki iki NetVeil arası TCP çok akışlı hız testi"
+  },
+  "lan_speed_role_server": {
+    "en": "Listen",
+    "tr": "Dinle"
+  },
+  "lan_speed_role_client": {
+    "en": "Test",
+    "tr": "Test Et"
+  },
+  "lan_speed_port": {
+    "en": "Port",
+    "tr": "Port"
+  },
+  "lan_speed_target_ip": {
+    "en": "Target IP",
+    "tr": "Hedef IP"
+  },
+  "lan_speed_upload": {
+    "en": "Upload",
+    "tr": "Yükleme"
+  },
+  "lan_speed_download": {
+    "en": "Download",
+    "tr": "İndirme"
+  },
+  "lan_speed_streams": {
+    "en": "Parallel Streams",
+    "tr": "Paralel Akış"
+  },
+  "lan_speed_duration": {
+    "en": "Duration (sec)",
+    "tr": "Süre (sn)"
+  },
+  "lan_speed_server_ready": {
+    "en": "Listening...",
+    "tr": "Dinleniyor..."
+  },
+  "lan_speed_listen_addr": {
+    "en": "Other device connects to",
+    "tr": "Diğer cihaz şu adrese bağlanır"
+  },
+  "lan_speed_diag_this": {
+    "en": "This Device",
+    "tr": "Bu Cihaz"
+  },
+  "lan_speed_diag_peer": {
+    "en": "Peer",
+    "tr": "Karşı Taraf"
+  },
+  "lan_speed_diag_connected": {
+    "en": "connected",
+    "tr": "bağlandı"
+  },
+  "lan_speed_err_empty_ip": {
+    "en": "Target IP cannot be empty",
+    "tr": "Hedef IP boş olamaz"
+  },
+  "lan_speed_err_not_private": {
+    "en": "Only private network (LAN) addresses can be tested. Public/WAN addresses are not allowed.",
+    "tr": "Yalnızca özel ağ (LAN) adresleri test edilebilir. Public/WAN adresleri girilemez."
+  },
+  "lan_speed_connecting": {
+    "en": "Connecting to peer...",
+    "tr": "Eş cihaza bağlanıyor..."
+  },
+  "lan_speed_btn_listen": {
+    "en": "Start Listening",
+    "tr": "Dinlemeye Başla"
+  },
+  "lan_speed_btn_test": {
+    "en": "Run Test",
+    "tr": "Testi Başlat"
+  },
+  "lan_speed_btn_stop": {
+    "en": "Stop",
+    "tr": "Durdur"
+  },
+  "lan_speed_result_ul": {
+    "en": "Upload",
+    "tr": "Yükleme"
+  },
+  "lan_speed_result_dl": {
+    "en": "Download",
+    "tr": "İndirme"
+  },
+  "lan_speed_intro_title": {
+    "en": "LAN Speed Test",
+    "tr": "LAN Hız Testi"
+  },
+  "lan_speed_intro_desc": {
+    "en": "Measures real throughput between two NetVeil devices on the same local network. No internet or netveil.net is used — only your LAN hardware (NIC, cables, switch, Wi-Fi AP). One device listens, the other connects and runs a bidirectional multi-stream test. Run NetVeil on both devices, set one to Listen and the other to Test — or use Discover to find listeners automatically.",
+    "tr": "Aynı yerel ağdaki iki NetVeil cihazı arasındaki gerçek throughput'u ölçer. İnternet veya netveil.net kullanılmaz — yalnızca LAN donanımın (NIC, kablo, switch, Wi-Fi AP). Bir cihaz dinler, diğeri bağlanıp çift yönlü çok-akışlı test çalıştırır. İki cihazda da NetVeil'i aç, birini Dinle diğerini Test Et yap — ya da Keşfet ile dinleyicileri otomatik bul."
+  },
+  "lan_speed_honesty_note": {
+    "en": "Measures local network hardware (NIC/switch/cable/Wi-Fi AP). No internet or netveil.net is used. Tests are sequential: upload first, then download. Both devices must run NetVeil. Windows local network permission may be required on the listening device (LAN-only).",
+    "tr": "Yerel ağ donanımını ölçer (NIC/switch/kablo/Wi-Fi AP). İnternet veya netveil.net kullanılmaz. Testler ardışıktır: önce yükleme sonra indirme. Her iki cihazda da NetVeil çalışmalıdır. Dinleyen cihazda Windows yerel ağ izni gerekebilir (yalnızca LAN)."
+  },
+  "lan_speed_discover": {
+    "en": "Discover",
+    "tr": "Keşfet"
+  },
+  "lan_speed_discovering": {
+    "en": "Searching…",
+    "tr": "Aranıyor…"
+  },
+  "lan_speed_no_peers": {
+    "en": "No devices found",
+    "tr": "Cihaz bulunamadı"
+  },
+  "lan_speed_peers_found": {
+    "en": "Devices found",
+    "tr": "Bulunan cihazlar"
+  },
+  "lan_speed_select_peer": {
+    "en": "Click to select",
+    "tr": "Seçmek için tıkla"
+  },
+  "hist_col_date": {
+    "en": "Date",
+    "tr": "Tarih"
+  },
+  "hist_col_module": {
+    "en": "Module",
+    "tr": "Modül"
+  },
+  "hist_col_score": {
+    "en": "Score",
+    "tr": "Skor"
+  },
+  "hist_col_grade": {
+    "en": "Grade",
+    "tr": "Not"
+  },
+  "hist_col_dl": {
+    "en": "DL (Mbps)",
+    "tr": "İndirme (Mbps)"
+  },
+  "hist_col_ul": {
+    "en": "UL (Mbps)",
+    "tr": "Yükleme (Mbps)"
+  },
+  "hist_col_ping": {
+    "en": "Ping (ms)",
+    "tr": "Ping (ms)"
+  },
+  "hist_col_jitter": {
+    "en": "Jitter (ms)",
+    "tr": "Jitter (ms)"
+  },
+  "hist_col_server": {
+    "en": "Server",
+    "tr": "Sunucu"
+  },
+  "hist_col_idle": {
+    "en": "Idle (ms)",
+    "tr": "Boşta (ms)"
+  },
+  "hist_col_loaded": {
+    "en": "Loaded (ms)",
+    "tr": "Yük (ms)"
+  },
+  "hist_col_delta": {
+    "en": "Δ (ms)",
+    "tr": "Δ (ms)"
+  },
+  "hist_col_best": {
+    "en": "Best (ms)",
+    "tr": "En İyi (ms)"
+  },
+  "hist_col_loss": {
+    "en": "Loss (%)",
+    "tr": "Kayıp (%)"
+  },
+  "hist_col_rtt": {
+    "en": "RTT ms",
+    "tr": "RTT ms"
+  },
+  "hist_col_mos": {
+    "en": "MOS",
+    "tr": "MOS"
+  },
+  "hist_col_baseline": {
+    "en": "Baseline",
+    "tr": "Referans"
+  },
+  "hist_col_bt": {
+    "en": "BitTorrent",
+    "tr": "BitTorrent"
+  },
+  "hist_col_quic": {
+    "en": "QUIC",
+    "tr": "QUIC"
+  },
+  "hist_col_wg": {
+    "en": "WireGuard",
+    "tr": "WireGuard"
+  },
+  "hist_col_ovpn": {
+    "en": "OpenVPN",
+    "tr": "OpenVPN"
+  },
+  "hist_col_dl_peak": {
+    "en": "DL Peak",
+    "tr": "DL Tepe"
+  },
+  "hist_col_ul_peak": {
+    "en": "UL Peak",
+    "tr": "UL Tepe"
+  },
+  "hist_col_streams": {
+    "en": "Streams",
+    "tr": "Akış"
+  },
+  "hist_col_peer": {
+    "en": "Peer",
+    "tr": "Karşı"
+  },
+  "nav_history": {
+    "en": "History",
+    "tr": "Geçmiş"
+  },
+  "history_title": {
+    "en": "History",
+    "tr": "Geçmiş"
+  },
+  "history_empty": {
+    "en": "No records yet. Run a test to start tracking.",
+    "tr": "Henüz kayıt yok. Takip için bir test çalıştır."
+  },
+  "history_btn": {
+    "en": "History",
+    "tr": "Geçmiş"
+  },
+  "history_trend": {
+    "en": "Trend",
+    "tr": "Trend"
+  },
+  "hist_filter_all": {
+    "en": "All",
+    "tr": "Tümü"
+  },
+  "hist_filter_clear": {
+    "en": "Clear",
+    "tr": "Temizle"
+  },
+  "hist_filter_module": {
+    "en": "Module",
+    "tr": "Modül"
+  },
+  "hist_filter_date": {
+    "en": "Date range",
+    "tr": "Tarih aralığı"
+  },
+  "hist_mod_ping": {
+    "en": "Ping",
+    "tr": "Ping"
+  },
+  "hist_no_match": {
+    "en": "No records match the filters",
+    "tr": "Filtreye uygun kayıt yok"
+  },
+  "hist_detail": {
+    "en": "Details",
+    "tr": "Detay"
+  },
+  "ping_group_social": {
+    "en": "Social Media",
+    "tr": "Sosyal Medya"
+  },
+  "ping_group_comm": {
+    "en": "Communication",
+    "tr": "İletişim"
+  },
+  "ping_group_streaming": {
+    "en": "Streaming & Music",
+    "tr": "Streaming & Müzik"
+  },
+  "ping_group_gaming": {
+    "en": "Gaming Services",
+    "tr": "Oyun Servisleri"
+  },
+  "ping_group_tech": {
+    "en": "Tech & Infrastructure",
+    "tr": "Teknoloji & Altyapı"
+  },
+  "throttle_grade_clean": {
+    "en": "No throttling detected — all protocols running freely.",
+    "tr": "Daraltma tespit edilmedi — tüm protokoller serbest."
+  },
+  "throttle_grade_detected": {
+    "en": "Some protocols may be throttled or blocked by your ISP.",
+    "tr": "Bazı protokoller ISP tarafından kısıtlanıyor veya engelleniyor olabilir."
+  },
+  "mtu_grade_optimal": {
+    "en": "Optimal MTU — full-size frames, no fragmentation.",
+    "tr": "Optimal MTU — tam boyutlu çerçeve, parçalanma yok."
+  },
+  "mtu_grade_ok": {
+    "en": "MTU is slightly reduced — minor overhead, acceptable for most use cases.",
+    "tr": "MTU hafif düşük — küçük ek yük, çoğu kullanım için kabul edilebilir."
+  },
+  "mtu_grade_low": {
+    "en": "Low MTU detected — tunnels or misconfigured VPN likely causing fragmentation.",
+    "tr": "Düşük MTU tespit edildi — tünel veya yanlış yapılandırılmış VPN parçalanmaya yol açıyor olabilir."
+  },
+  "mtu_grade_critical": {
+    "en": "Critical MTU problem — significant performance degradation expected.",
+    "tr": "Kritik MTU sorunu — ciddi performans düşüşü bekleniyor."
+  },
+  "license_gate_title": {
+    "en": "This is a Pro feature",
+    "tr": "Bu bir Pro özelliği"
+  },
+  "license_gate_desc": {
+    "en": "This tool is part of NetVeil Pro. Activate your license to unlock Advanced Diagnosis and all premium tools.",
+    "tr": "Bu araç NetVeil Pro kapsamındadır. Advanced Diagnosis ve tüm premium araçların kilidini açmak için lisansını etkinleştir."
+  },
+  "license_gate_upgrade_btn": {
+    "en": "Activate License",
+    "tr": "Lisansı Etkinleştir"
+  },
+  "settings_license_title": {
+    "en": "License",
+    "tr": "Lisans"
+  },
+  "settings_license_key_placeholder": {
+    "en": "Enter your license key",
+    "tr": "Lisans anahtarını gir"
+  },
+  "settings_license_activate_btn": {
+    "en": "Activate",
+    "tr": "Etkinleştir"
+  },
+  "settings_license_deactivate_btn": {
+    "en": "Deactivate",
+    "tr": "Devre Dışı Bırak"
+  },
+  "settings_license_status_active": {
+    "en": "Active",
+    "tr": "Etkin"
+  },
+  "settings_license_status_inactive": {
+    "en": "Not activated",
+    "tr": "Etkin değil"
+  },
+  "settings_license_status_invalid": {
+    "en": "Invalid",
+    "tr": "Geçersiz"
+  },
+  "settings_license_status_expired": {
+    "en": "Expired",
+    "tr": "Süresi doldu"
+  },
+  "settings_license_type_monthly": {
+    "en": "30-Day",
+    "tr": "30 Gün"
+  },
+  "settings_license_type_lifetime": {
+    "en": "Lifetime",
+    "tr": "Ömür Boyu"
+  },
+  "license_pro_tool_note": {
+    "en": "This is a Premium tool. Activate your license to run it.",
+    "tr": "Bu bir Premium araçtır. Çalıştırmak için lisansını etkinleştir."
+  },
+  "getpro_title": {
+    "en": "Get NetVeil Pro",
+    "tr": "NetVeil Pro Edin"
+  },
+  "getpro_subtitle": {
+    "en": "The core toolkit is free forever. Unlock the advanced Premium tools with a one-time purchase — no subscriptions.",
+    "tr": "Temel araçlar her zaman ücretsiz. Gelişmiş Premium araçları tek seferlik ödemeyle aç — abonelik yok."
+  },
+  "getpro_col_feature": {
+    "en": "Feature",
+    "tr": "Özellik"
+  },
+  "getpro_col_free": {
+    "en": "Free",
+    "tr": "Free"
+  },
+  "getpro_col_pro": {
+    "en": "Pro",
+    "tr": "Pro"
+  },
+  "getpro_feat_quick_gaming": {
+    "en": "Quick & Gaming Diagnosis",
+    "tr": "Quick & Gaming Tanılama"
+  },
+  "getpro_feat_ping": {
+    "en": "Ping, Latency & Game Servers",
+    "tr": "Ping, Gecikme & Oyun Sunucuları"
+  },
+  "getpro_feat_speed_bloat": {
+    "en": "Speed Test & Bufferbloat",
+    "tr": "Hız Testi & Bufferbloat"
+  },
+  "getpro_feat_wifi_dns": {
+    "en": "Wi-Fi, DNS Benchmark, IPv6 & MTU",
+    "tr": "Wi-Fi, DNS Benchmark, IPv6 & MTU"
+  },
+  "getpro_feat_traceroute_history": {
+    "en": "Traceroute & Test History",
+    "tr": "Traceroute & Test Geçmişi"
+  },
+  "getpro_feat_advanced": {
+    "en": "Advanced Diagnosis (full one-click)",
+    "tr": "Advanced Diagnosis (tam tek-tık)"
+  },
+  "getpro_feat_isp_throttle": {
+    "en": "ISP Throttle Detection",
+    "tr": "ISP Daraltma Tespiti"
+  },
+  "getpro_feat_isp_interference": {
+    "en": "ISP Interference Detection",
+    "tr": "ISP Müdahale Tespiti"
+  },
+  "getpro_feat_stability": {
+    "en": "Network Stability Monitoring",
+    "tr": "Ağ Kararlılığı İzleme"
+  },
+  "getpro_feat_voip": {
+    "en": "VoIP Quality (MOS) Test",
+    "tr": "VoIP Kalite (MOS) Testi"
+  },
+  "getpro_feat_cgnat_leak": {
+    "en": "CGNAT & DNS / IP Leak Checks",
+    "tr": "CGNAT & DNS / IP Sızıntı Denetimi"
+  },
+  "getpro_feat_lan": {
+    "en": "LAN Scanner & PC-to-PC Speed Test",
+    "tr": "LAN Tarayıcı & PC-PC Hız Testi"
+  },
+  "getpro_feat_twitch": {
+    "en": "Twitch Upload (RTMP) Test",
+    "tr": "Twitch Yükleme (RTMP) Testi"
+  },
+  "getpro_30d_title": {
+    "en": "Pro — 30 Days",
+    "tr": "Pro — 30 Gün"
+  },
+  "getpro_30d_period": {
+    "en": "one-time",
+    "tr": "tek seferlik"
+  },
+  "getpro_lifetime_title": {
+    "en": "Pro — Lifetime",
+    "tr": "Pro — Ömür Boyu"
+  },
+  "getpro_lifetime_period": {
+    "en": "one-time",
+    "tr": "tek seferlik"
+  },
+  "getpro_best_value": {
+    "en": "Best Value",
+    "tr": "En Avantajlı"
+  },
+  "getpro_buy_30d": {
+    "en": "Get Pro — 30-Day License",
+    "tr": "Pro Edin — 30 Günlük Lisans"
+  },
+  "getpro_buy_lifetime": {
+    "en": "Get Pro — Lifetime License",
+    "tr": "Pro Edin — Ömür Boyu Lisans"
+  },
+  "getpro_have_key": {
+    "en": "Already have a license key?",
+    "tr": "Zaten lisans anahtarın var mı?"
+  },
+  "getpro_activate_link": {
+    "en": "Activate it",
+    "tr": "Etkinleştir"
+  },
+  "nav_get_pro": {
+    "en": "Get Pro",
+    "tr": "Pro Edin"
+  }
+}

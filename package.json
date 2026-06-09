@@ -1,0 +1,19 @@
+{
+  "name": "netveil",
+  "private": true,
+  "version": "0.9.11",
+  "scripts": {
+    "dev": "cd ui && npm run dev",
+    "build": "cd ui && npm run build",
+    "tauri": "tauri",
+    "bump": "node scripts/bump-version.mjs",
+    "bump:minor": "node scripts/bump-version.mjs minor",
+    "bump:major": "node scripts/bump-version.mjs major",
+    "bump:no-deploy": "node scripts/bump-version.mjs --no-deploy",
+    "deploy:server": "node scripts/deploy-server.mjs",
+    "build:portable": "node scripts/build-portable.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2"
+  }
+}

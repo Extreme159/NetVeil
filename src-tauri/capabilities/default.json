@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "default",
+  "description": "Default capabilities",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "core:webview:allow-set-webview-zoom",
+    "core:window:allow-set-size",
+    "dialog:allow-save",
+    "fs:allow-write-file"
+  ]
+}

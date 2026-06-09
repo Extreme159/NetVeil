@@ -1,0 +1,70 @@
+[package]
+name = "netveil"
+version = "0.9.11"
+description = "Gaming Network Diagnostics Tool"
+authors = ["netveil"]
+edition = "2021"
+
+[lib]
+name = "netveil_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+# Open-core: bu acik kaynak depo yalnizca FREE cekirdegi derler.
+# "premium" feature'i premium kaynak kodu gerektirir (ozel/private depo) ve bu
+# depoda yalnizca yer-tutucu (stub) olarak bulunur; varsayilan derleme kapalidir.
+[features]
+default = []
+premium = []
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2", "stream"] }
+surge-ping = "0.8"
+sysinfo = "0.32"
+dns-lookup = "2"
+futures = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+tokio-rustls = "0.26"
+rustls = { version = "0.23", features = ["ring"] }
+rustls-native-certs = "0.8"
+rustls-pki-types = "1"
+webpki-roots = "1"
+sha2 = "0.10"
+rusqlite = { version = "0.32", features = ["bundled"] }
+rml_rtmp = "0.8"
+rml_amf0 = "0.3"
+bytes = "1"
+igd-next = { version = "0.17", features = ["aio_tokio"] }
+stun_codec = "0.4"
+bytecodec = "0.5"
+socket2 = { version = "0.5", features = ["all"] }
+# Windows-native: OS Credential Store backend (v3'te feature ZORUNLU; yoksa mock/no-op store kullanir).
+# Linux/macOS portunda apple-native + sync-secret-service eklenecek.
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_WiFi",
+    "Win32_Networking_WinSock",
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_IO",
+] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

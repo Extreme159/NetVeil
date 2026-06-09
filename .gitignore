@@ -1,0 +1,32 @@
+# Tasarım referansı (commit etme)
+.design-ref/
+
+# Build çıktıları
+ui/dist/
+ui/node_modules/
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Portable build çıktıları (release binary'leri)
+dist/
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# pi (added by gitignore-pi-dir extension)
+.pi/
+context.md
+*.lnk
+
+# Yerel gecici dosyalar (commit etme)
+*.bat
+Yeni Metin Belgesi.txt
