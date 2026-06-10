@@ -8,10 +8,10 @@ NetVeil; ping, jitter, paket kaybı, bufferbloat, hız, ISP throttle/müdahale, 
 - 🎯 **Tek tıkla teşhis** — bütün testleri çalıştırır, harf notu + net açıklama verir
 - 🔍 **Rakiplerde olmayan testler** — ISP'nin BitTorrent/QUIC/WireGuard/OpenVPN trafiğini yavaşlatıp yavaşlatmadığını protokol seviyesinde tespit eder
 - 💬 **Anlaşılır** — "45ms jitter" değil, "rekabetçi oyunlarda ara sıra takılma yaşayabilirsin"
-- 🪶 **Kurulumsuz** — ~9 MB tek .exe, çift tıkla çalışır
+- 🪶 **Hafif** — küçük indirme, hızlı kurulum, saniyeler içinde hazır
 - 🔒 **Dürüst** — ölçemediği şeyi "ölçtüm" demez, uydurma skor üretmez
 
-![Version](https://img.shields.io/badge/version-0.8.58-purple)
+![Version](https://img.shields.io/badge/version-0.9.11-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-BSL%201.1-orange)
 ![Tauri](https://img.shields.io/badge/Tauri-2.11-orange)
@@ -94,15 +94,15 @@ Ağının arasına girilip girilmediğini denetler:
 
 ## 🚀 Kullanım
 
-### Hazır Portable (önerilen)
-[Releases](https://github.com/Extreme159/NetVeil/releases) sayfasından **NetVeil-vX.X.X-portable.exe** indir:
+### Kurulum (önerilen)
+[Releases](https://github.com/Extreme159/NetVeil/releases/latest) sayfasından **NetVeil_X.X.X_x64-setup.exe** indir:
 
-1. İndir
-2. Sağ tıkla → **Yönetici olarak çalıştır** (ICMP ping için gerekli)
+1. İndir ve kurulumu çalıştır
+2. NetVeil'i başlat — ICMP ping için yönetici olarak çalıştır
 3. Gösterge Panelinde bir teşhis seç: **Hızlı**, **Oyun**, veya **Gelişmiş**
 4. Sonuçları harf notu + açıklamalarla gör, istersen PDF olarak kaydet
 
-> Kurulum yok. WebView2 Windows 10/11'de zaten yüklü gelir.
+> WebView2 Windows 10/11'de zaten yüklü gelir.
 
 ### Kaynaktan Build
 

@@ -8,7 +8,7 @@ NetVeil measures ping, jitter, packet loss, bufferbloat, speed, ISP throttle/int
 - 🎯 **One-click diagnosis** — runs all tests, provides letter grade + clear explanation
 - 🔍 **Tests you won't find elsewhere** — detects whether your ISP throttles BitTorrent/QUIC/WireGuard/OpenVPN traffic at the protocol level
 - 💬 **Understandable** — not "45ms jitter", but "you may experience occasional stutter in competitive games"
-- 🪶 **No installation** — ~9 MB single .exe, double-click to run
+- 🪶 **Lightweight** — small download, quick installer, ready in seconds
 - 🔒 **Honest** — doesn't claim to measure what it can't, no fabricated scores
 
 ![Version](https://img.shields.io/badge/version-0.9.11-purple)
@@ -94,15 +94,15 @@ Checks whether something is intercepting your network:
 
 ## 🚀 Usage
 
-### Ready-to-Use Portable (recommended)
-Download **NetVeil-vX.X.X-portable.exe** from [Releases](https://github.com/Extreme159/NetVeil/releases):
+### Install (recommended)
+Download **NetVeil_X.X.X_x64-setup.exe** from [Releases](https://github.com/Extreme159/NetVeil/releases/latest):
 
-1. Download
-2. Right-click → **Run as administrator** (required for ICMP ping)
+1. Download and run the installer
+2. Launch NetVeil — for ICMP ping, run as administrator
 3. In the Dashboard, pick a diagnosis: **Quick**, **Gaming**, or **Advanced**
 4. View results with letter grades and explanations, optionally save as PDF
 
-> No installation. WebView2 comes preinstalled on Windows 10/11.
+> WebView2 comes preinstalled on Windows 10/11.
 
 ### Build from Source
 
