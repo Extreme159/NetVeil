@@ -11,10 +11,25 @@ NetVeil measures ping, jitter, packet loss, bufferbloat, speed, ISP throttle/int
 - 🪶 **Lightweight** — small download, quick installer, ready in seconds
 - 🔒 **Honest** — doesn't claim to measure what it can't, no fabricated scores
 
-![Version](https://img.shields.io/badge/version-0.9.11-purple)
+![Version](https://img.shields.io/badge/version-0.9.15-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-BSL%201.1-orange)
 ![Tauri](https://img.shields.io/badge/Tauri-2.11-orange)
+
+---
+
+## ❓ Questions NetVeil Answers
+
+If you've ever asked any of these, NetVeil is built to give you a real answer:
+
+- **Is my ISP throttling me?** — NetVeil compares BitTorrent, QUIC, WireGuard and OpenVPN traffic against your baseline HTTPS speed at the protocol level.
+- **Why is my gaming ping so high?** — Real ICMP ping to game servers + jitter, packet loss and bufferbloat, graded against competitive thresholds.
+- **What is bufferbloat and how do I fix it?** — Idle vs. loaded latency measurement with culprit-segment diagnosis (is it your router or your ISP?).
+- **Am I behind CGNAT?** — Detects carrier-grade NAT that breaks port forwarding.
+- **Is my DNS leaking?** — Audits whether DNS/UDP traffic escapes your VPN tunnel.
+- **Is something intercepting my connection?** — DNS hijacking, transparent proxy, SNI filtering, MITM certificates and more.
+
+NetVeil runs on **Windows**, works **locally** (no account, no telemetry, no cloud scoring), and is **open-core / free** to use. Read more in our [guides](https://www.netveil.net/blog) or see how it [compares to other tools](https://www.netveil.net/compare).
 
 ---
 
@@ -119,11 +134,11 @@ npx tauri dev
 - Rust 1.75+
 - Windows 10/11 (Linux/macOS support planned)
 
-### Portable Build
+### Build an Installer
 
 ```powershell
-npm run build:portable
-# Output: dist/NetVeil-vX.X.X-portable.exe (~8 MB)
+npx tauri build --bundles nsis
+# Output: src-tauri/target/release/bundle/nsis/NetVeil_X.X.X_x64-setup.exe
 ```
 
 ---
@@ -176,8 +191,7 @@ netveil/
 ├── server/                     # netveil.net server code (Rust + Axum)
 ├── assets/png/                 # Brand logo (app icon, favicon, mark)
 └── scripts/
-    ├── bump-version.mjs        # Syncs version files
-    └── build-portable.mjs      # Portable .exe build
+    └── bump-version.mjs        # Syncs version files
 ```
 
 ---
@@ -189,10 +203,10 @@ netveil/
 ```bash
 npx tauri dev        # Tauri dev (Rust hot reload + Vite HMR)
 npm run build        # UI production build
-npm run build:portable  # Single .exe portable build
-npm run bump         # Patch: 0.6.x → 0.6.(x+1)
-npm run bump:minor   # Minor: 0.6.x → 0.7.0
-npm run bump:major   # Major: 0.x.x → 1.0.0
+npx tauri build --bundles nsis  # NSIS installer (NetVeil_X.X.X_x64-setup.exe)
+npm run bump         # Patch: 0.9.x → 0.9.(x+1)
+npm run bump feature # Minor: 0.9.x → 0.10.x
+npm run bump major   # Major: 0.x.x → 1.0.0
 ```
 
 ### Architecture Notes

@@ -11,10 +11,25 @@ NetVeil; ping, jitter, paket kaybı, bufferbloat, hız, ISP throttle/müdahale, 
 - 🪶 **Hafif** — küçük indirme, hızlı kurulum, saniyeler içinde hazır
 - 🔒 **Dürüst** — ölçemediği şeyi "ölçtüm" demez, uydurma skor üretmez
 
-![Version](https://img.shields.io/badge/version-0.9.11-purple)
+![Version](https://img.shields.io/badge/version-0.9.15-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-BSL%201.1-orange)
 ![Tauri](https://img.shields.io/badge/Tauri-2.11-orange)
+
+---
+
+## ❓ NetVeil Hangi Sorulara Cevap Verir
+
+Aşağıdakilerden birini hiç sorduysan, NetVeil sana gerçek bir cevap vermek için tasarlandı:
+
+- **ISP'm hızımı kısıyor mu?** — NetVeil; BitTorrent, QUIC, WireGuard ve OpenVPN trafiğini protokol seviyesinde baseline HTTPS hızınla karşılaştırır.
+- **Oyun ping'im neden yüksek?** — Oyun sunucularına gerçek ICMP ping + jitter, paket kaybı ve bufferbloat, rekabetçi eşiklere göre notlandırılır.
+- **Bufferbloat nedir ve nasıl düzeltilir?** — Boş vs. yüklü gecikme ölçümü + suçlu segment teşhisi (sorun router'ında mı yoksa ISP'nde mi?).
+- **CGNAT arkasında mıyım?** — Port yönlendirmeyi bozan taşıyıcı-düzeyi NAT'ı tespit eder.
+- **DNS'im sızıyor mu?** — DNS/UDP trafiğinin VPN tüneli dışına çıkıp çıkmadığını denetler.
+- **Bağlantımı dinleyen bir şey mi var?** — DNS hijacking, transparent proxy, SNI filtreleme, MITM sertifikaları ve daha fazlası.
+
+NetVeil **Windows**'ta çalışır, **yerel** çalışır (hesap yok, telemetri yok, bulut skorlama yok) ve **open-core / ücretsiz**'tir. Daha fazlası için [rehberlerimize](https://www.netveil.net/blog) bak veya [diğer araçlarla karşılaştırmasını](https://www.netveil.net/compare) gör.
 
 ---
 
@@ -119,11 +134,11 @@ npx tauri dev
 - Rust 1.75+
 - Windows 10/11 (Linux/macOS desteği planda)
 
-### Portable Build
+### Installer Build
 
 ```powershell
-npm run build:portable
-# Çıktı: dist/NetVeil-vX.X.X-portable.exe (~8 MB)
+npx tauri build --bundles nsis
+# Çıktı: src-tauri/target/release/bundle/nsis/NetVeil_X.X.X_x64-setup.exe
 ```
 
 ---
@@ -176,8 +191,7 @@ netveil/
 ├── server/                     # netveil.net sunucu kodu (Rust + Axum)
 ├── assets/png/                 # Marka logosu (app icon, favicon, mark)
 └── scripts/
-    ├── bump-version.mjs        # Versiyon dosyalarını senkron günceller
-    └── build-portable.mjs      # Portable .exe build
+    └── bump-version.mjs        # Versiyon dosyalarını senkron günceller
 ```
 
 ---
@@ -189,10 +203,10 @@ netveil/
 ```bash
 npx tauri dev        # Tauri dev (Rust hot reload + Vite HMR)
 npm run build        # UI production build
-npm run build:portable  # Tek .exe portable build
-npm run bump         # Patch: 0.6.x → 0.6.(x+1)
-npm run bump:minor   # Minor: 0.6.x → 0.7.0
-npm run bump:major   # Major: 0.x.x → 1.0.0
+npx tauri build --bundles nsis  # NSIS installer (NetVeil_X.X.X_x64-setup.exe)
+npm run bump         # Patch: 0.9.x → 0.9.(x+1)
+npm run bump feature # Minor: 0.9.x → 0.10.x
+npm run bump major   # Major: 0.x.x → 1.0.0
 ```
 
 ### Mimari Notlar
