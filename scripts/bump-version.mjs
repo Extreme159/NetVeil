@@ -1,5 +1,7 @@
 // Her edit/release sonrası: `npm run bump` ile versiyon arttır.
-// Tek yerden — 6 dosyayı senkron tutar + netveil.net sunucusunu günceller.
+// Tek yerden — 5 dosyayı + 2 lock kök sürümünü senkron tutar (package.json, ui/package.json,
+// src-tauri/tauri.conf.json, src-tauri/Cargo.toml, README.md).
+// Sunucu deploy'u bu script'ten YAPILMAZ — `--deploy` reddedilir.
 //
 // BETA VERSİYON ŞEMASI (v1.0.0'a kadar): v0.MINOR.PATCH — PATCH HEP 10-99 ARASI.
 // KRİTİK: patch ASLA 00-09 OLMAZ — leading-zero (örn 0.7.01) cargo semver'i KIRAR.
@@ -12,19 +14,28 @@
 // Kullanım:
 //   npm run bump              → fix: patch +1           (0.7.10 → 0.7.11)
 //   npm run bump feature      → özellik: minor +1, patch=10 (0.7.x → 0.8.10)
-//   npm run bump major        → 0.x.x → 1.0.0
-//   npm run bump --no-deploy  → sunucu güncellemesini atla
+//   npm run bump major        → 0.x.x → 1.0.10 (script davranışı; final 1.0.0 ayrı karar)
+//   npm run bump -- --no-deploy → geri uyum için kabul edilir (no-op)
+//   npm run bump -- --deploy  → REDDEDİLİR (exit 1, hiçbir dosya yazılmaz)
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
+
+// `--deploy` (tek başına veya `--no-deploy` ile birlikte) HER DOSYA YAZIMINDAN ÖNCE reddedilir.
+if (args.includes("--deploy")) {
+  console.error(
+    "\n❌ --deploy devre dışı: bump sunucu deploy etmez.\n" +
+    "   Hiçbir dosya değiştirilmedi.\n"
+  );
+  process.exit(1);
+}
 // fix (default) = basit düzeltme; feature/minor = önemli özellik. "patch" da fix sayılır (geri uyum).
 const rawKind = args.find(a => ["fix","patch","feature","minor","major"].includes(a)) || "fix";
 const KIND = rawKind === "patch" ? "fix" : (rawKind === "minor" ? "feature" : rawKind);
-const NO_DEPLOY = args.includes("--no-deploy");
+// `--no-deploy` geri uyum için kabul edilir (no-op); deploy yolu yoktur.
 
 // Beta şeması: patch HEP 10-99 (leading-zero YOK — cargo semver kuralı).
 // fix = patch+1 (99'da minor+1 & patch=10), feature = minor+1 & patch=10,
@@ -55,6 +66,21 @@ function updateCargo(path, version) {
   console.log(`  ✓ ${path.replace(ROOT, ".")}`);
 }
 
+// npm lock dosyalarında yalnız kök paket sürümü (üst "version" + packages[""].version) eşitlenir;
+// bağımlılık girdilerine dokunulmaz.
+function updateLock(path, version) {
+  const content = readFileSync(path, "utf8");
+  const top = /^(  "version"\s*:\s*")[^"]+(")/m;
+  const root = /("packages"\s*:\s*\{\s*""\s*:\s*\{[^}]*?"version"\s*:\s*")[^"]+(")/;
+  if (!top.test(content) || !root.test(content)) {
+    console.error(`\n❌ ${path.replace(ROOT, ".")}: kök paket sürüm alanları bulunamadı.\n`);
+    process.exit(1);
+  }
+  const swap = (_m, pre, post) => `${pre}${version}${post}`;
+  writeFileSync(path, content.replace(top, swap).replace(root, swap));
+  console.log(`  ✓ ${path.replace(ROOT, ".")}`);
+}
+
 function updateReadme(path, version) {
   const content = readFileSync(path, "utf8");
   const updated = content.replace(
@@ -75,56 +101,12 @@ console.log(`\n📦 Versiyon: ${oldVersion} → ${newVersion} (${KIND})\n`);
 
 updateJson(pkgPath, newVersion);
 updateJson(join(ROOT, "ui/package.json"), newVersion);
+updateLock(join(ROOT, "package-lock.json"), newVersion);
+updateLock(join(ROOT, "ui/package-lock.json"), newVersion);
 updateJson(join(ROOT, "src-tauri/tauri.conf.json"), newVersion);
 updateCargo(join(ROOT, "src-tauri/Cargo.toml"), newVersion);
 // Not: Versiyon UI'da artik Settings'te gosterilir, kaynak ui/package.json (yukarida
 // updateJson ile guncellenir). Sidebar versiyon gostermez (Sidebar regex'i kaldirildi).
 updateReadme(join(ROOT, "README.md"), newVersion);
 
-// server/src/main.rs içindeki /version endpoint'ini güncelle
-function updateServerVersion(path, version) {
-  const content = readFileSync(path, "utf8");
-  const updated = content.replace(
-    /\{\\"version\\":\\"[^\\"]+\\"/,
-    `{\\"version\\":\\"${version}\\"`
-  );
-  if (content === updated) {
-    console.log(`  ⚠ ${path.replace(ROOT, ".")} — version satırı bulunamadı, atlandı`);
-    return;
-  }
-  writeFileSync(path, updated);
-  console.log(`  ✓ ${path.replace(ROOT, ".")}`);
-}
-
-const serverMainPath = join(ROOT, "server/src/main.rs");
-updateServerVersion(serverMainPath, newVersion);
-
 console.log(`\n✨ Bitti. Yeni versiyon: ${newVersion}\n`);
-
-// Sunucu deploy — SSH üzerinden otomatik
-if (NO_DEPLOY) {
-  console.log("⏩ Sunucu deploy atlandı (--no-deploy).\n");
-} else {
-  console.log("🚀 netveil.net sunucusu güncelleniyor...");
-  try {
-    execSync(
-      `scp "${serverMainPath}" root@netveil.net:/opt/netveil-server/src/main.rs`,
-      { stdio: "pipe" }
-    );
-    execSync(
-      `ssh root@netveil.net "cd /opt/netveil-server && /root/.cargo/bin/cargo build --release --quiet && systemctl restart netveil-server"`,
-      { stdio: "pipe" }
-    );
-    // Deploy sonrasi dogrulama
-    const result = execSync("ssh root@netveil.net \"curl -s https://netveil.net/version\"", { encoding: "utf8" });
-    const remote = JSON.parse(result.trim());
-    if (remote.version === newVersion) {
-      console.log(`  ✓ netveil.net/version → ${remote.version} ✔\n`);
-    } else {
-      console.log(`  ⚠ netveil.net/version → ${remote.version} (beklenen: ${newVersion})\n`);
-    }
-  } catch (err) {
-    console.error(`  ✗ Sunucu deploy hatası: ${err.message}`);
-    console.error("    Manuel deploy: npm run deploy:server\n");
-  }
-}

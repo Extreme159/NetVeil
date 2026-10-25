@@ -58,6 +58,17 @@ fn df_ping_v4(target: Ipv4Addr, payload_len: u32) -> ProbeResult {
         IcmpCloseHandle, IcmpCreateFile, IcmpSendEcho, ICMP_ECHO_REPLY, IP_OPTION_INFORMATION,
     };
 
+    /// Owns an ICMP handle; closes it on drop.
+    struct IcmpHandle(HANDLE);
+    impl Drop for IcmpHandle {
+        fn drop(&mut self) {
+            // SAFETY: the handle came from IcmpCreateFile and is closed exactly once, here.
+            unsafe {
+                let _ = IcmpCloseHandle(self.0);
+            }
+        }
+    }
+
     const IP_FLAG_DF: u8 = 0x02; // Don't Fragment
     const IP_SUCCESS: u32 = 0;
     // Paket çok büyük + DF set → fragmentasyon gerekti ama yapılamadı.
@@ -71,10 +82,11 @@ fn df_ping_v4(target: Ipv4Addr, payload_len: u32) -> ProbeResult {
     let payload = vec![0x61u8; payload_len as usize];
 
     unsafe {
-        let handle: HANDLE = match IcmpCreateFile() {
+        // Closed on EVERY exit path (early returns included) by the guard's Drop.
+        let icmp = IcmpHandle(match IcmpCreateFile() {
             Ok(h) if !h.is_invalid() => h,
             _ => return ProbeResult::Unreachable,
-        };
+        });
 
         let opts = IP_OPTION_INFORMATION {
             Ttl: 64,
@@ -85,20 +97,25 @@ fn df_ping_v4(target: Ipv4Addr, payload_len: u32) -> ProbeResult {
         };
 
         let reply_size = std::mem::size_of::<ICMP_ECHO_REPLY>() + payload_len as usize + 8;
-        let mut reply_buf = vec![0u8; reply_size];
+        // u64 backing store: ICMP_ECHO_REPLY holds pointers, so the buffer must be 8-byte aligned
+        // (a Vec<u8> only guarantees alignment 1) before it is read through a typed reference.
+        let mut reply_buf = vec![0u64; reply_size.div_ceil(8)];
+        let reply_bytes = reply_buf.len() * 8;
 
         let ret = IcmpSendEcho(
-            handle,
+            icmp.0,
             dest,
             payload.as_ptr() as *const core::ffi::c_void,
             payload_len as u16,
             Some(&opts),
             reply_buf.as_mut_ptr() as *mut core::ffi::c_void,
-            reply_size as u32,
+            reply_bytes as u32,
             PROBE_TIMEOUT_MS,
         );
 
-        let status = if ret != 0 {
+        // ret = number of replies stored; also bound-check that a whole ICMP_ECHO_REPLY fits in
+        // the buffer before reading it (never read past what we allocated).
+        let status = if ret != 0 && reply_bytes >= std::mem::size_of::<ICMP_ECHO_REPLY>() {
             let reply = &*(reply_buf.as_ptr() as *const ICMP_ECHO_REPLY);
             reply.Status
         } else {
@@ -107,8 +124,6 @@ fn df_ping_v4(target: Ipv4Addr, payload_len: u32) -> ProbeResult {
             // güvenli tarafta "TooBig" varsaymak yanlış olabilir → Unreachable/timeout say.
             return ProbeResult::Unreachable;
         };
-
-        let _ = IcmpCloseHandle(handle);
 
         match status {
             IP_SUCCESS => ProbeResult::Ok,

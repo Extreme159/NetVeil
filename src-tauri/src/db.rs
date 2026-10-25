@@ -9,16 +9,16 @@
 //!   kısa-ömürlü bir bağlantıyla yapılır. Bu, async runtime'ı bloklamamak için
 //!   çağıran taraftan `spawn_blocking` içinde çalıştırılmalıdır.
 //!
-//! İleriki adımlar (roadmap, STATUS.md):
+//! İleriki adımlar (roadmap):
 //! - Adım 2: `test_runs` tablosu + geçmiş karşılaştırma sorguları + Tauri komutları.
 //! - Adım 3: `uploaded` flag tabanlı sunucu senkron kuyruğu.
 
-use rusqlite::Connection;
+use rusqlite::{Connection, Transaction, TransactionBehavior};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
 /// Mevcut şema versiyonu. Yeni migration eklerken artır ve `run_migrations`'a ekle.
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 4;
 
 /// Bir epoch-ms zaman damgasından YEREL saate göre gün etiketi üretir ('2026-05-29').
 /// Gün sınırı kullanıcının yerel saatine göredir (kullanıcı-merkezli "o günkü veri").
@@ -57,6 +57,19 @@ pub fn open(path: &Path) -> Result<Connection, String> {
 
 /// `user_version`'a göre eksik migration adımlarını sırayla uygular.
 fn run_migrations(conn: &Connection) -> Result<(), String> {
+    // Fast path: already at (or beyond) this schema version -> no write lock, nothing touched.
+    let existing: i64 = conn
+        .query_row("PRAGMA user_version", [], |r| r.get(0))
+        .map_err(|e| format!("user_version read failed: {e}"))?;
+    if existing >= SCHEMA_VERSION {
+        return Ok(());
+    }
+    // Version check + every schema change + the user_version bump run in ONE write transaction
+    // (IMMEDIATE: concurrent opens serialize on the lock). An interruption rolls everything back,
+    // so the DB can never be left half-migrated (e.g. column added but version not bumped).
+    let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate)
+        .map_err(|e| format!("migration transaction could not be started: {e}"))?;
+    let conn: &Connection = &tx;
     let current: i64 = conn
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .map_err(|e| format!("user_version okunamadı: {e}"))?;
@@ -78,6 +91,12 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
     }
 
     if current < 2 {
+        // Idempotent ALTER: a database broken by the old non-transactional migration already has
+        // the column but a stale user_version; re-adding it would fail forever.
+        if !column_exists(conn, "outage_events", "day")? {
+            conn.execute_batch("ALTER TABLE outage_events ADD COLUMN day TEXT;")
+                .map_err(|e| format!("v2 migration (day column) failed: {e}"))?;
+        }
         // v2: gün-merkezli kararlılık telemetrisi
         //   - daily_stability : gün başına TEK satır (hızlı sorgu için ön-toplanmış gerçek)
         //   - stability_buckets: dakikalık RTT özeti (trend grafiği)
@@ -112,8 +131,7 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
                 wan_max       REAL
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_bucket_ts ON stability_buckets(bucket_ts);
-            CREATE INDEX IF NOT EXISTS idx_bucket_day ON stability_buckets(day);
-            ALTER TABLE outage_events ADD COLUMN day TEXT;",
+            CREATE INDEX IF NOT EXISTS idx_bucket_day ON stability_buckets(day);",
         )
         .map_err(|e| format!("v2 migration başarısız: {e}"))?;
     }
@@ -138,9 +156,49 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         ).map_err(|e| format!("v3 migration başarısız: {e}"))?;
     }
 
+    if current < 4 {
+        // v4: per-bucket gateway/WAN sample counts. A minute bucket can be written in two
+        // fragments (monitor restarted within the same minute); the counts let the upsert merge
+        // the averages with correct weights. Idempotent (column_exists) like every ALTER here.
+        for col in ["gw_n", "wan_n"] {
+            if !column_exists(conn, "stability_buckets", col)? {
+                conn.execute_batch(&format!(
+                    "ALTER TABLE stability_buckets ADD COLUMN {col} INTEGER NOT NULL DEFAULT 0;"
+                ))
+                .map_err(|e| format!("v4 migration ({col}) failed: {e}"))?;
+                // Backfill ONLY the column this run just added (a pre-existing column from an
+                // interrupted migration may already hold real counts). Pre-v4 buckets must not
+                // get zero weight in the merge. fail_count counts samples where gw OR wan failed,
+                // so sample_count - fail_count is a lower bound (samples where both replied) of
+                // the segment's real count; at least 1 when the bucket has an average.
+                let avg = if col == "gw_n" { "gw_avg" } else { "wan_avg" };
+                conn.execute_batch(&format!(
+                    "UPDATE stability_buckets
+                     SET {col} = MAX(sample_count - fail_count, 1)
+                     WHERE {avg} IS NOT NULL;"
+                ))
+                .map_err(|e| format!("v4 migration ({col} backfill) failed: {e}"))?;
+            }
+        }
+    }
+
     conn.pragma_update(None, "user_version", SCHEMA_VERSION)
         .map_err(|e| format!("user_version yazılamadı: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("migration commit failed: {e}"))?;
     Ok(())
+}
+
+/// True when `table` already has a column named `column` (pragma_table_info).
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, String> {
+    let n: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM pragma_table_info(?1) WHERE name = ?2",
+            rusqlite::params![table, column],
+            |r| r.get(0),
+        )
+        .map_err(|e| format!("table_info read failed: {e}"))?;
+    Ok(n > 0)
 }
 
 /// Bir kopma olayını kalıcı olarak kaydeder. Çağıran taraf bunu `spawn_blocking`
@@ -226,14 +284,47 @@ fn insert_bucket(conn: &Connection, b: &BucketData) -> Result<(), String> {
     let (gw_avg, gw_min, gw_max) = agg(&b.gw_rtts);
     let (wan_avg, wan_min, wan_max) = agg(&b.wan_rtts);
 
-    // INSERT OR REPLACE — bucket_ts UNIQUE; aynı dakika tekrar yazılırsa üzerine yazar.
-    conn.execute(
-        "INSERT OR REPLACE INTO stability_buckets
-            (day, bucket_ts, sample_count, fail_count, gw_avg, gw_min, gw_max, wan_avg, wan_min, wan_max)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+    // Bucket row + daily totals are ONE transaction: either both are written or neither.
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| format!("bucket transaction could not be started: {e}"))?;
+
+    // UPSERT (bucket_ts UNIQUE): if the same minute is written again (monitor restarted within
+    // the minute) the fragments are MERGED - counts add, min/max combine, averages are weighted
+    // by the per-bucket sample counts - instead of the later fragment replacing the earlier one.
+    tx.execute(
+        "INSERT INTO stability_buckets
+            (day, bucket_ts, sample_count, fail_count, gw_avg, gw_min, gw_max, wan_avg, wan_min, wan_max, gw_n, wan_n)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+         ON CONFLICT(bucket_ts) DO UPDATE SET
+            sample_count = sample_count + excluded.sample_count,
+            fail_count   = fail_count   + excluded.fail_count,
+            gw_avg  = CASE WHEN excluded.gw_n = 0 THEN gw_avg
+                           ELSE (COALESCE(gw_avg, 0) * (CASE WHEN gw_n = 0 AND gw_avg IS NOT NULL THEN 1 ELSE gw_n END)
+                                 + excluded.gw_avg * excluded.gw_n)
+                                / ((CASE WHEN gw_n = 0 AND gw_avg IS NOT NULL THEN 1 ELSE gw_n END) + excluded.gw_n) END,
+            gw_min  = CASE WHEN gw_min IS NULL THEN excluded.gw_min
+                           WHEN excluded.gw_min IS NULL THEN gw_min
+                           ELSE MIN(gw_min, excluded.gw_min) END,
+            gw_max  = CASE WHEN gw_max IS NULL THEN excluded.gw_max
+                           WHEN excluded.gw_max IS NULL THEN gw_max
+                           ELSE MAX(gw_max, excluded.gw_max) END,
+            wan_avg = CASE WHEN excluded.wan_n = 0 THEN wan_avg
+                           ELSE (COALESCE(wan_avg, 0) * (CASE WHEN wan_n = 0 AND wan_avg IS NOT NULL THEN 1 ELSE wan_n END)
+                                 + excluded.wan_avg * excluded.wan_n)
+                                / ((CASE WHEN wan_n = 0 AND wan_avg IS NOT NULL THEN 1 ELSE wan_n END) + excluded.wan_n) END,
+            wan_min = CASE WHEN wan_min IS NULL THEN excluded.wan_min
+                           WHEN excluded.wan_min IS NULL THEN wan_min
+                           ELSE MIN(wan_min, excluded.wan_min) END,
+            wan_max = CASE WHEN wan_max IS NULL THEN excluded.wan_max
+                           WHEN excluded.wan_max IS NULL THEN wan_max
+                           ELSE MAX(wan_max, excluded.wan_max) END,
+            gw_n    = (CASE WHEN gw_n = 0 AND gw_avg IS NOT NULL THEN 1 ELSE gw_n END) + excluded.gw_n,
+            wan_n   = (CASE WHEN wan_n = 0 AND wan_avg IS NOT NULL THEN 1 ELSE wan_n END) + excluded.wan_n",
         rusqlite::params![
             day, b.bucket_ts as i64, b.sample_count, b.fail_count,
-            gw_avg, gw_min, gw_max, wan_avg, wan_min, wan_max
+            gw_avg, gw_min, gw_max, wan_avg, wan_min, wan_max,
+            b.gw_rtts.len() as i64, b.wan_rtts.len() as i64
         ],
     )
     .map_err(|e| format!("bucket insert başarısız: {e}"))?;
@@ -250,7 +341,7 @@ fn insert_bucket(conn: &Connection, b: &BucketData) -> Result<(), String> {
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0);
 
-    conn.execute(
+    tx.execute(
         "INSERT INTO daily_stability
             (day, monitored_ms, sample_count, fail_count, gw_rtt_sum, gw_rtt_n,
              wan_rtt_sum, wan_rtt_n, worst_wan_rtt, updated_at)
@@ -273,6 +364,8 @@ fn insert_bucket(conn: &Connection, b: &BucketData) -> Result<(), String> {
         ],
     )
     .map_err(|e| format!("daily upsert başarısız: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("bucket commit failed: {e}"))?;
     Ok(())
 }
 
@@ -403,8 +496,8 @@ pub async fn save_test_run(
     summary_grade: Option<String>,
 ) -> Result<(), String> {
     let _ = tokio::task::spawn_blocking(move || {
-        if let Err(e) = record_test_run(&app, ts, &module, &metrics, summary_score, summary_grade.as_deref()) {
-            crate::dlog!("[db] test_run kaydedilemedi: {}", e);
+        if let Err(_e) = record_test_run(&app, ts, &module, &metrics, summary_score, summary_grade.as_deref()) {
+            crate::dlog!("[db] test_run kaydedilemedi: {}", _e);
         }
     }).await;
     Ok(()) // best-effort: hata testi durdurmaz
@@ -461,6 +554,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "premium")]
     fn outage_insert_ve_okuma() {
         let conn = Connection::open_in_memory().unwrap();
         run_migrations(&conn).unwrap();
@@ -526,6 +620,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "premium")]
     fn v1_den_v2_ye_yukseltme() {
         // Önce sadece v1 şemasını kur (eski sürüm simülasyonu)
         let conn = Connection::open_in_memory().unwrap();
@@ -539,7 +634,7 @@ mod tests {
         // v1->v2->v3 migration: tüm adımlar sırayla çalışmalı
         run_migrations(&conn).unwrap();
         let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(v, 3);
+        assert_eq!(v, SCHEMA_VERSION);
         // Artık insert çalışmalı
         insert_outage(&conn, 1000, "wan", "end", Some(500), 1000).unwrap();
     }
@@ -564,7 +659,85 @@ mod tests {
         run_migrations(&conn).unwrap();
         run_migrations(&conn).unwrap(); // tekrar çalışınca patlamamalı (IF NOT EXISTS)
         let v: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(v, 3);
+        assert_eq!(v, SCHEMA_VERSION);
+    }
+
+    fn user_version(conn: &Connection) -> i64 {
+        conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap()
+    }
+
+    /// Interrupted old migration: `day` column already added, user_version still 1.
+    /// Re-opening must recover (idempotent ALTER) instead of failing with "duplicate column".
+    #[test]
+    fn migration_recovers_column_added_but_version_not_bumped() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE outage_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, kind TEXT NOT NULL,
+                phase TEXT NOT NULL, duration_ms INTEGER, created_at INTEGER NOT NULL,
+                day TEXT);",
+        )
+        .unwrap();
+        conn.pragma_update(None, "user_version", 1i64).unwrap();
+
+        run_migrations(&conn).expect("must recover from a half-applied v2 migration");
+        assert_eq!(user_version(&conn), SCHEMA_VERSION);
+        assert!(column_exists(&conn, "outage_events", "day").unwrap());
+        // the full schema is there
+        for t in ["daily_stability", "stability_buckets", "test_runs"] {
+            let n: i64 = conn
+                .query_row("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0))
+                .unwrap();
+            assert_eq!(n, 1, "{t} missing");
+        }
+        // and it stays openable
+        run_migrations(&conn).unwrap();
+    }
+
+    /// Same recovery through the real file-backed open() path (reopen after the "crash").
+    #[test]
+    fn open_recovers_half_migrated_file_db() {
+        let mut path = std::env::temp_dir();
+        path.push(format!("netveil_halfmig_{}.db", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE outage_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, kind TEXT NOT NULL,
+                    phase TEXT NOT NULL, duration_ms INTEGER, created_at INTEGER NOT NULL, day TEXT);",
+            )
+            .unwrap();
+            conn.pragma_update(None, "user_version", 1i64).unwrap();
+        }
+        let conn = open(&path).expect("reopen must succeed");
+        assert_eq!(user_version(&conn), SCHEMA_VERSION);
+        drop(conn);
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(path.with_extension("db-wal"));
+        let _ = std::fs::remove_file(path.with_extension("db-shm"));
+    }
+
+    /// A failing migration step must roll back everything (no half-applied schema, version intact).
+    #[test]
+    fn migration_failure_rolls_back_everything() {
+        let conn = Connection::open_in_memory().unwrap();
+        // An index named like a table the v2 step creates makes that step fail midway
+        // (CREATE TABLE IF NOT EXISTS does not tolerate an index with the same name).
+        conn.execute_batch(
+            "CREATE TABLE decoy (x INTEGER);
+             CREATE INDEX stability_buckets ON decoy(x);",
+        )
+        .unwrap();
+        assert!(run_migrations(&conn).is_err());
+        assert_eq!(user_version(&conn), 0, "version must not advance on failure");
+        // Tables from earlier steps of the same run were rolled back too.
+        for t in ["outage_events", "daily_stability"] {
+            let n: i64 = conn
+                .query_row("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1", [t], |r| r.get(0))
+                .unwrap();
+            assert_eq!(n, 0, "{t} must be rolled back");
+        }
     }
 
     #[cfg(feature = "premium")]
@@ -620,6 +793,172 @@ mod tests {
             .query_row("SELECT count(*) FROM daily_stability", [], |r| r.get(0))
             .unwrap();
         assert_eq!(day_rows, 1);
+    }
+
+    /// Monitor restarted inside the same minute: the two fragments must MERGE, not overwrite.
+    #[cfg(feature = "premium")]
+    #[test]
+    fn same_minute_fragments_merge() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_migrations(&conn).unwrap();
+
+        let first = BucketData {
+            bucket_ts: 60_000,
+            sample_count: 4,
+            fail_count: 1,
+            gw_rtts: vec![2.0, 4.0],       // n=2 avg 3 min 2 max 4
+            wan_rtts: vec![20.0],          // n=1 avg 20
+        };
+        let second = BucketData {
+            bucket_ts: 60_000,
+            sample_count: 3,
+            fail_count: 2,
+            gw_rtts: vec![9.0, 9.0],       // n=2 avg 9 min 9 max 9
+            wan_rtts: vec![],              // no WAN reply in this fragment
+        };
+        insert_bucket(&conn, &first).unwrap();
+        insert_bucket(&conn, &second).unwrap();
+
+        let (n, fails, gw_avg, gw_min, gw_max, wan_avg, wan_max, gw_n, wan_n): (
+            i64, i64, f64, f64, f64, f64, f64, i64, i64,
+        ) = conn
+            .query_row(
+                "SELECT sample_count, fail_count, gw_avg, gw_min, gw_max, wan_avg, wan_max, gw_n, wan_n
+                 FROM stability_buckets WHERE bucket_ts=60000",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?, r.get(7)?, r.get(8)?)),
+            )
+            .unwrap();
+        assert_eq!(n, 7);
+        assert_eq!(fails, 3);
+        assert_eq!(gw_n, 4);
+        assert_eq!(wan_n, 1);
+        assert!((gw_avg - 6.0).abs() < 1e-9, "weighted gw avg (3*2+9*2)/4 = 6, got {gw_avg}");
+        assert_eq!(gw_min, 2.0);
+        assert_eq!(gw_max, 9.0);
+        assert_eq!(wan_avg, 20.0, "WAN avg must survive a fragment without WAN samples");
+        assert_eq!(wan_max, 20.0);
+
+        // exactly one bucket row, daily totals are the sum of both fragments
+        let rows: i64 = conn.query_row("SELECT count(*) FROM stability_buckets", [], |r| r.get(0)).unwrap();
+        assert_eq!(rows, 1);
+        let (ds, df): (i64, i64) = conn
+            .query_row("SELECT sample_count, fail_count FROM daily_stability", [], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap();
+        assert_eq!((ds, df), (7, 3));
+    }
+
+    /// v3 -> v4 migration of a populated bucket: gw_n/wan_n are backfilled (not 0), so the legacy
+    /// averages keep their weight when a same-minute fragment is merged afterwards.
+    #[cfg(feature = "premium")]
+    #[test]
+    fn v4_migration_backfills_counts_and_merge_weights_legacy_bucket() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_migrations(&conn).unwrap();
+        // Rewind to a v3 database: no gw_n / wan_n columns.
+        conn.execute_batch(
+            "ALTER TABLE stability_buckets DROP COLUMN gw_n;
+             ALTER TABLE stability_buckets DROP COLUMN wan_n;
+             INSERT INTO stability_buckets
+                (day, bucket_ts, sample_count, fail_count, gw_avg, gw_min, gw_max, wan_avg, wan_min, wan_max)
+             VALUES ('1970-01-01', 60000, 10, 2, 10.0, 8.0, 12.0, 20.0, 15.0, 25.0),
+                    ('1970-01-01', 120000, 6, 6, NULL, NULL, NULL, NULL, NULL, NULL);",
+        )
+        .unwrap();
+        conn.pragma_update(None, "user_version", 3i64).unwrap();
+
+        run_migrations(&conn).unwrap();
+        assert_eq!(user_version(&conn), SCHEMA_VERSION);
+
+        let counts = |ts: i64| -> (i64, i64) {
+            conn.query_row(
+                "SELECT gw_n, wan_n FROM stability_buckets WHERE bucket_ts=?1",
+                [ts],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap()
+        };
+        assert_eq!(counts(60_000), (8, 8), "sample_count - fail_count");
+        assert_eq!(counts(120_000), (0, 0), "no average -> no weight");
+
+        // Merge a fragment into the legacy bucket: legacy avg weighs 8, fragment 2.
+        insert_bucket(
+            &conn,
+            &BucketData {
+                bucket_ts: 60_000,
+                sample_count: 2,
+                fail_count: 0,
+                gw_rtts: vec![20.0, 20.0],
+                wan_rtts: vec![],
+            },
+        )
+        .unwrap();
+        let (gw_avg, wan_avg): (f64, f64) = conn
+            .query_row(
+                "SELECT gw_avg, wan_avg FROM stability_buckets WHERE bucket_ts=60000",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert!((gw_avg - 12.0).abs() < 1e-9, "(10*8 + 20*2)/10 = 12, got {gw_avg}");
+        assert_eq!(wan_avg, 20.0);
+        assert_eq!(counts(60_000), (10, 8));
+    }
+
+    /// A row with n=0 but a non-null average (legacy data) counts as weight 1 in the merge, not 0.
+    #[cfg(feature = "premium")]
+    #[test]
+    fn merge_treats_zero_count_with_average_as_weight_one() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_migrations(&conn).unwrap();
+        conn.execute_batch(
+            "INSERT INTO stability_buckets
+                (day, bucket_ts, sample_count, fail_count, gw_avg, gw_min, gw_max, wan_avg, wan_min, wan_max, gw_n, wan_n)
+             VALUES ('1970-01-01', 60000, 5, 0, 10.0, 10.0, 10.0, NULL, NULL, NULL, 0, 0);",
+        )
+        .unwrap();
+        insert_bucket(
+            &conn,
+            &BucketData {
+                bucket_ts: 60_000,
+                sample_count: 1,
+                fail_count: 0,
+                gw_rtts: vec![30.0],
+                wan_rtts: vec![40.0],
+            },
+        )
+        .unwrap();
+        let (gw_avg, wan_avg, gw_n, wan_n): (f64, f64, i64, i64) = conn
+            .query_row(
+                "SELECT gw_avg, wan_avg, gw_n, wan_n FROM stability_buckets WHERE bucket_ts=60000",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            )
+            .unwrap();
+        assert!((gw_avg - 20.0).abs() < 1e-9, "(10*1 + 30*1)/2 = 20, got {gw_avg}");
+        assert_eq!(gw_n, 2);
+        assert_eq!(wan_avg, 40.0, "NULL legacy WAN avg: fragment value taken as is");
+        assert_eq!(wan_n, 1);
+    }
+
+    /// If the daily upsert fails, the bucket row must not be left behind (one transaction).
+    #[cfg(feature = "premium")]
+    #[test]
+    fn bucket_and_daily_are_atomic() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_migrations(&conn).unwrap();
+        conn.execute_batch("DROP TABLE daily_stability;").unwrap();
+
+        let b = BucketData {
+            bucket_ts: 60_000,
+            sample_count: 5,
+            fail_count: 0,
+            gw_rtts: vec![1.0],
+            wan_rtts: vec![2.0],
+        };
+        assert!(insert_bucket(&conn, &b).is_err());
+        let rows: i64 = conn.query_row("SELECT count(*) FROM stability_buckets", [], |r| r.get(0)).unwrap();
+        assert_eq!(rows, 0, "bucket insert must be rolled back with the failed daily upsert");
     }
 
     #[cfg(feature = "premium")]

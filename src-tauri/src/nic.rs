@@ -22,7 +22,7 @@ pub struct NicInfo {
 #[cfg(target_os = "windows")]
 fn fetch_link_speeds() -> HashMap<String, String> {
     let mut map = HashMap::new();
-    let Ok(o) = std::process::Command::new("powershell")
+    let Ok(o) = std::process::Command::new(crate::powershell_exe())
         .args(["-NoProfile", "-Command",
             "Get-NetAdapter | Select-Object Name,LinkSpeed | ConvertTo-Csv -NoTypeInformation"
         ])

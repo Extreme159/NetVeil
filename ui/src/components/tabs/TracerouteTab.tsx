@@ -4,6 +4,9 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import { t } from "../../lib/i18n";
 import { useLang } from "../../lib/useLang";
+import { filterRemotePresets, type PresetTarget } from "../../lib/remotePresets";
+import { useTestGuard } from "../testGuard";
+import { TestBusyHint } from "../TestBusyHint";
 
 interface HopResult {
   hop: number;
@@ -15,6 +18,7 @@ interface HopResult {
   timed_out: boolean;
   country: string | null;
   country_name: string | null;
+  run_id?: number;         // backend echo of the UI-chosen run id
 }
 
 // GeoIP paralel çekildikten sonra gelen güncelleme (hop event'inden sonra).
@@ -22,13 +26,19 @@ interface HopGeo {
   hop: number;
   country: string | null;
   country_name: string | null;
+  run_id?: number;
+}
+
+// Reverse DNS (hostname) hop yayınlandıktan sonra ayrı event ile gelir.
+interface HopHost {
+  hop: number;
+  hostname: string;
+  run_id?: number;
 }
 
 type TraceState = "idle" | "running" | "done" | "error";
 type ViewMode = "table" | "waterfall";
 type IpVersion = "auto" | "4" | "6";
-
-interface PresetTarget { label: string; host: string; ip_support?: "4" | "6" | "both"; }
 
 const FALLBACK_PRESETS: PresetTarget[] = [
   { label: "Cloudflare DNS",   host: "1.1.1.1",                ip_support: "4" },
@@ -453,8 +463,21 @@ export function TracerouteTab() {
   const [viewMode, setViewMode] = useState<ViewMode>("waterfall");
   const [ipVersion, setIpVersion] = useState<IpVersion>("auto");
   const [resolveHostnames, setResolveHostnames] = useState(true);
+  const guard = useTestGuard();
 
   const unlistenRef = useRef<UnlistenFn[]>([]);
+  // Id of the current run; events carrying another run_id (stale run) are ignored.
+  const runIdRef = useRef(0);
+  // run_traceroute returns immediately (the trace runs in a backend task), so the shared test guard is
+  // owned until THIS run's done/error event, Stop/Reset, unmount or a setup/invoke failure.
+  // Only the run that acquired it (guardRunRef) may release it.
+  const guardRunRef = useRef<number | null>(null);
+  const { release } = guard;
+  const releaseOwned = useCallback((owner: number) => {
+    if (guardRunRef.current !== owner) return;
+    guardRunRef.current = null;
+    release("traceroute");
+  }, [release]);
   const tableBottomRef = useRef<HTMLTableRowElement>(null);
 
   const effectiveTarget = useCustom ? customTarget.trim() : target;
@@ -473,20 +496,37 @@ export function TracerouteTab() {
   };
 
   const loadPresets = useCallback(() => {
-    fetch("https://netveil.net/traceroute-presets")
-      .then(r => r.json())
-      .then((data: PresetTarget[]) => { if (data.length > 0) setPresets(data); })
+    fetch("https://api.netveil.net/traceroute-presets")
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((data: unknown) => {
+        const valid = filterRemotePresets(data);
+        setPresets(valid.length > 0 ? valid : FALLBACK_PRESETS);
+      })
       .catch(() => {});
   }, []);
 
   useEffect(() => { loadPresets(); }, [loadPresets]);
 
   const cleanup = () => {
-    unlistenRef.current.forEach(fn => fn());
+    const fns = unlistenRef.current;
     unlistenRef.current = [];
+    fns.forEach(fn => fn());
+    // Drain in place: runTrace's abortIfStale holds the same array and must not unlisten twice.
+    fns.length = 0;
   };
 
-  useEffect(() => { return cleanup; }, []);
+  // Tabs stay mounted when the user switches tabs; this cleanup only runs on a real unmount.
+  // It invalidates the active frontend run (pending listen() setup included) and cancels the
+  // backend trace so nothing keeps probing/emitting.
+  useEffect(() => {
+    return () => {
+      const owner = runIdRef.current;
+      runIdRef.current += 1;
+      cleanup();
+      releaseOwned(owner);
+      invoke("stop_traceroute").catch(() => {});
+    };
+  }, [releaseOwned]);
 
   useEffect(() => {
     if (newHopIdx !== null) {
@@ -496,54 +536,94 @@ export function TracerouteTab() {
 
   const runTrace = async () => {
     if (!effectiveTarget) return;
+    if (!guard.acquire("traceroute")) return;
     cleanup();
+    const runId = Math.max(Date.now(), runIdRef.current + 1);
+    runIdRef.current = runId;
+    guardRunRef.current = runId;
+    // A run is current only until Reset/Stop/unmount/new run replaces runIdRef.
+    const isCurrent = () => runIdRef.current === runId;
     setState("running");
     setHops([]);
     setNewHopIdx(null);
     setErrorMsg(null);
 
-    const unHop = await listen<HopResult>("traceroute:hop", (e) => {
-      setHops(prev => {
-        const exists = prev.findIndex(h => h.hop === e.payload.hop);
-        if (exists >= 0) {
-          const next = [...prev];
-          next[exists] = e.payload;
-          return next;
-        }
-        return [...prev, e.payload];
-      });
-      setNewHopIdx(e.payload.hop);
-    });
-
-    // GeoIP paralel geldiğinde ilgili hop'un ülke alanlarını güncelle.
-    const unGeo = await listen<HopGeo>("traceroute:hop_geo", (e) => {
-      setHops(prev =>
-        prev.map(h =>
-          h.hop === e.payload.hop
-            ? { ...h, country: e.payload.country, country_name: e.payload.country_name }
-            : h,
-        ),
-      );
-    });
-
-    const unDone = await listen("traceroute:done", () => {
-      setState("done");
-      setNewHopIdx(null);
-      cleanup();
-    });
-
-    const unError = await listen<string>("traceroute:error", (e) => {
-      setErrorMsg(e.payload);
-      setState("error");
-      setNewHopIdx(null);
-      cleanup();
-    });
-
-    unlistenRef.current = [unHop, unGeo, unDone, unError];
+    // Registrations of THIS run. cleanup() (Reset/Stop) detaches the ones already installed;
+    // anything still pending is unlistened right after its listen() resolves (abortIfStale).
+    const fns: UnlistenFn[] = [];
+    unlistenRef.current = fns;
+    const abortIfStale = () => {
+      if (isCurrent()) return false;
+      fns.forEach(fn => fn());
+      fns.length = 0;
+      return true;
+    };
 
     try {
-      await invoke("run_traceroute", { host: effectiveTarget, ipVersion, resolveHostnames });
+      fns.push(await listen<HopResult>("traceroute:hop", (e) => {
+        if (!isCurrent() || e.payload.run_id !== runId) return;
+        setHops(prev => {
+          const exists = prev.findIndex(h => h.hop === e.payload.hop);
+          if (exists >= 0) {
+            const next = [...prev];
+            next[exists] = e.payload;
+            return next;
+          }
+          return [...prev, e.payload];
+        });
+        setNewHopIdx(e.payload.hop);
+      }));
+      if (abortIfStale()) return;
+
+      // GeoIP paralel geldiğinde ilgili hop'un ülke alanlarını güncelle.
+      fns.push(await listen<HopGeo>("traceroute:hop_geo", (e) => {
+        if (!isCurrent() || e.payload.run_id !== runId) return;
+        setHops(prev =>
+          prev.map(h =>
+            h.hop === e.payload.hop
+              ? { ...h, country: e.payload.country, country_name: e.payload.country_name }
+              : h,
+          ),
+        );
+      }));
+      if (abortIfStale()) return;
+
+      // Hostname (reverse DNS) hop'tan sonra gelir; yalnızca hostname alanını birleştirir (geo/RTT korunur).
+      fns.push(await listen<HopHost>("traceroute:hop_host", (e) => {
+        if (!isCurrent() || e.payload.run_id !== runId) return;
+        setHops(prev =>
+          prev.map(h => (h.hop === e.payload.hop ? { ...h, hostname: e.payload.hostname } : h)),
+        );
+      }));
+      if (abortIfStale()) return;
+
+      // done is emitted by the backend only AFTER GeoIP/hostname enrichment finished, so cleaning up here
+      // no longer drops late country labels or hostnames.
+      fns.push(await listen<{ run_id: number }>("traceroute:done", (e) => {
+        if (!isCurrent() || e.payload?.run_id !== runId) return;
+        setState("done");
+        setNewHopIdx(null);
+        cleanup();
+        releaseOwned(runId);
+      }));
+      if (abortIfStale()) return;
+
+      fns.push(await listen<{ run_id: number; message: string }>("traceroute:error", (e) => {
+        if (!isCurrent() || e.payload.run_id !== runId) return;
+        setErrorMsg(e.payload.message);
+        setState("error");
+        setNewHopIdx(null);
+        cleanup();
+        releaseOwned(runId);
+      }));
+      // Stop/Reset may have landed while the last registration was pending: never start the backend run then.
+      if (abortIfStale()) return;
+
+      await invoke("run_traceroute", { host: effectiveTarget, ipVersion, resolveHostnames, runId });
     } catch (e: unknown) {
+      releaseOwned(runId);
+      // A stopped/replaced run must not surface its late failure on the new idle/running state.
+      if (!isCurrent()) return;
       setErrorMsg(String(e));
       setState("error");
       cleanup();
@@ -551,7 +631,13 @@ export function TracerouteTab() {
   };
 
   const reset = () => {
+    // Invalidate the active run first: pending listen() setup / late events of it become no-ops.
+    const owner = runIdRef.current;
+    runIdRef.current += 1;
     cleanup();
+    releaseOwned(owner);
+    // Stop/Reset cancels the backend trace (no more probes, no more events).
+    invoke("stop_traceroute").catch(() => {});
     setState("idle");
     setHops([]);
     setNewHopIdx(null);
@@ -623,7 +709,7 @@ export function TracerouteTab() {
                 transform: resolveHostnames ? "translateX(11px)" : "translateX(0)",
               }} />
             </span>
-            Hostname Resolve
+            {t("trace_resolve_hostnames")}
           </button>
 
           {/* Input / Select — flex: 1 ile genişliyor */}
@@ -676,7 +762,7 @@ export function TracerouteTab() {
         {/* Satır 2: Waterfall/Tablo toggle (sol) | Temizle + Trace Başlat (sağ) */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {/* Görünüm toggle — her zaman görünür */}
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Stil</span>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{t("trace_style")}</span>
           <div style={{ display: "flex", borderRadius: 7, overflow: "hidden", border: "1px solid var(--border)" }}>
             {(["waterfall", "table"] as ViewMode[]).map(mode => (
               <button
@@ -709,7 +795,7 @@ export function TracerouteTab() {
             )}
             <button
               onClick={isRunning ? reset : runTrace}
-              disabled={!effectiveTarget && !isRunning}
+              disabled={!isRunning && (!effectiveTarget || guard.activeTest !== null)}
               style={{
                 background: isRunning ? "rgba(239,68,68,0.1)" : "rgba(99,102,241,0.15)",
                 border: `1px solid ${isRunning ? "rgba(239,68,68,0.3)" : "rgba(99,102,241,0.3)"}`,
@@ -727,6 +813,7 @@ export function TracerouteTab() {
             <span className="mono">{effectiveTarget}</span>
           </div>
         )}
+        <TestBusyHint ownId="traceroute" />
       </div>
 
       {/* Hata */}
@@ -765,10 +852,10 @@ export function TracerouteTab() {
               <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
                 {t("trace_empty")}
               </div>
-            ) : (
+            ) : hops.length > 0 ? (
               <WaterfallView hops={hops} isDone={isDone} />
-            )}
-            {isRunning && hops.length > 0 && (
+            ) : null}
+            {isRunning && (
               <div style={{ padding: "8px 18px 12px", display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 11, color: "var(--accent)", animation: "pulse 1.2s ease infinite" }}>●</span>
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{hops.length + 1} {t("trace_waiting_row")}</span>

@@ -8,6 +8,8 @@ import { GradeBox } from "../GradeBox";
 import { t } from "../../lib/i18n";
 import { useLang } from "../../lib/useLang";
 import { DiagnosticProgress } from "../DiagnosticProgress";
+import { RerunButton } from "../RerunButton";
+import { useTestGuard } from "../testGuard";
 
 // Dinamik i18n anahtari icin guvenli cast (bilinmeyen key'de key string'i doner).
 const tk = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -86,6 +88,7 @@ export function SmartDiagnosisTab({ results, phase, runAllTests, testMode, total
   const smart = results.smartFull;
   // Test akisi suruyor mu (nic/wifi/ping/speed/.../smart herhangi biri).
   const isBusy = phase.startsWith("running_");
+  const { activeTest } = useTestGuard();
 
   // Test akisi surerken: Gosterge Paneli'ndeki adim-adim ilerleme listesi
   // (tamamlandi / suruyor / bekliyor). Tam tanilama -> 'full' adim seti.
@@ -112,7 +115,7 @@ export function SmartDiagnosisTab({ results, phase, runAllTests, testMode, total
         <div style={{ fontSize: 12, color: "#ef4444", maxWidth: 420, lineHeight: 1.6, padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
           {t("test_warning_external_traffic")}
         </div>
-        <button className="btn" onClick={runAllTests} disabled={isBusy || isLocked} type="button" style={isLocked ? { opacity: 0.4, cursor: "not-allowed" } : undefined}>
+        <button className="btn" onClick={runAllTests} disabled={isBusy || isLocked || activeTest !== null} type="button" style={isLocked ? { opacity: 0.4, cursor: "not-allowed" } : undefined}>
           {isBusy
             ? <Icon.Refresh style={{ animation: "spin 1s linear infinite" }} />
             : <Icon.Play />}
@@ -125,6 +128,7 @@ export function SmartDiagnosisTab({ results, phase, runAllTests, testMode, total
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <RerunButton onRun={runAllTests} running={isBusy} />
       {/* Buyuk resim sentezi: Genel Skor — grade karti EN USTTE (diger tablarla tutarli) */}
       {smart.general_synthesis && (
         <SynthesisCard title={t("synth_general_title")} s={smart.general_synthesis} />
@@ -195,7 +199,7 @@ function SynthesisCard({ title, s }: { title: string; s: Synthesis }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{title}</h3>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color }}>{s.score}/100</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color }}>{s.score != null ? `${s.score}/100` : "\u2014"}</span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.55 }}>
             {tk(s.headline_key)}

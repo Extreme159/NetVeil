@@ -138,6 +138,12 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
 
   return (
     <aside className="sidebar">
+      {/* nav ogeleri native <button> (klavye: Tab/Enter/Space); gorunum eski div stiliyle ayni, odakta belirgin halka */}
+      <style>{`
+        button.nav-item { width: 100%; box-sizing: border-box; border: none; background: transparent; text-align: left; font-family: inherit; }
+        button.icon-btn { padding: 0; font-family: inherit; }
+        .sidebar .nav-item:focus-visible, .sidebar .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      `}</style>
       <div className="brand">
         <img src="/netveil-app-icon.png" alt="" className="brand-logo" />
         <div className="brand-text">
@@ -147,19 +153,23 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
       </div>
 
       {/* Gösterge Paneli — en üstte, başlıksız tek öğe (Tanılama bölümü kaldırıldı) */}
-      <div
+      <button
+        type="button"
         className={"nav-item" + (activeTab === "dashboard" ? " active" : "")}
         onClick={() => onTabChange("dashboard")}
+        aria-current={activeTab === "dashboard" ? "page" : undefined}
       >
         <span className="ico"><Icon.Dashboard /></span>
         <span>{t("nav_dashboard")}</span>
-      </div>
+      </button>
 
       {/* Get Pro — yalnizca lisanssiz kullaniciya + premium build'de gosterilir (community open-core'da Pro kavrami yok) */}
       {!isLicensed && PREMIUM_BUILD && (
-        <div
+        <button
+          type="button"
           className={"nav-item" + (activeTab === "get-pro" ? " active premium-active" : "")}
           onClick={() => onTabChange("get-pro")}
+          aria-current={activeTab === "get-pro" ? "page" : undefined}
           style={{
             background: activeTab === "get-pro" ? undefined : "linear-gradient(180deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.02) 100%)",
             border: "1px solid rgba(212,175,55,0.20)", borderRadius: 10,
@@ -167,7 +177,7 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
         >
           <span className="ico" style={{ color: "#d4af37" }}><Icon.Throttle /></span>
           <span style={{ flex: 1 }}>{t("nav_get_pro")}</span>
-        </div>
+        </button>
       )}
 
       <div className="nav-section-label" style={{ marginTop: 8 }}>{t("nav_oneclick")}</div>
@@ -178,10 +188,12 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
         // Advanced Diagnosis ("smart") Pro; pasif gold gradient arka plan ile belli edilir (serit/PRO yok).
         const isProTool = entry.id === "smart";
         return (
-          <div
+          <button
+            type="button"
             key={entry.id}
             className={"nav-item" + (active ? (isProTool ? " active premium-active" : " active") : "")}
             onClick={() => onTabChange(entry.id)}
+            aria-current={active ? "page" : undefined}
             style={isProTool ? {
               background: "linear-gradient(180deg, rgba(212,175,55,0.07) 0%, rgba(212,175,55,0.02) 100%)",
               border: "1px solid rgba(212,175,55,0.13)",
@@ -198,7 +210,7 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
                 border: "1px solid rgba(139,92,246,0.3)", flexShrink: 0,
               }}>{entry.badge}</span>
             )}
-          </div>
+          </button>
         );
       })}
 
@@ -211,14 +223,16 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
           const Ico = Icon[entry.iconKey];
           const active = activeTab === entry.id;
           return (
-            <div
+            <button
+              type="button"
               key={entry.id}
               className={"nav-item" + (active ? " active" : "")}
               onClick={() => onTabChange(entry.id)}
+              aria-current={active ? "page" : undefined}
             >
               <span className="ico"><Ico /></span>
               <span>{entry.label}</span>
-            </div>
+            </button>
           );
         }
 
@@ -228,9 +242,11 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
         const childActive = entry.children.some(c => c.id === activeTab);
         return (
           <div key={entry.id}>
-            <div
+            <button
+              type="button"
               className={"nav-item nav-group" + (childActive ? " group-active" : "")}
               onClick={() => toggleGroup(entry.id)}
+              aria-expanded={isOpen}
             >
               <span className="ico"><Ico /></span>
               <span>{entry.label}</span>
@@ -246,21 +262,23 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
               >
                 ▶
               </span>
-            </div>
+            </button>
             {isOpen && (
               <div className="nav-sub">
                 {entry.children.map((c) => {
                   const CIco = Icon[c.iconKey];
                   const active = activeTab === c.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={c.id}
                       className={"nav-item nav-sub-item" + (active ? " active" : "")}
                       onClick={() => onTabChange(c.id)}
+                      aria-current={active ? "page" : undefined}
                     >
                       <span className="ico"><CIco /></span>
                       <span>{c.label}</span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -285,14 +303,16 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
           const active = activeTab === entry.id;
           // Gold gradient arka plan grup wrapper'da; her arac normal (serit yok, PRO yazisi yok).
           return (
-            <div
+            <button
+              type="button"
               key={entry.id}
               className={"nav-item" + (active ? " active premium-active" : "")}
               onClick={() => onTabChange(entry.id)}
+              aria-current={active ? "page" : undefined}
             >
               <span className="ico"><Ico /></span>
               <span style={{ flex: 1 }}>{entry.label}</span>
-            </div>
+            </button>
           );
         }
         return null;
@@ -305,14 +325,16 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
         const Ico = Icon[entry.iconKey];
         const active = activeTab === entry.id;
         return (
-          <div
+          <button
+            type="button"
             key={entry.id}
             className={"nav-item" + (active ? " active" : "")}
             onClick={() => onTabChange(entry.id)}
+            aria-current={active ? "page" : undefined}
           >
             <span className="ico"><Ico /></span>
             <span>{entry.label}</span>
-          </div>
+          </button>
         );
       })}
 
@@ -320,7 +342,10 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
 
       <div className="sidebar-foot">
         <StatusLine targetsLoaded={targetsLoaded} />
-        <div
+        <button
+          type="button"
+          aria-label={hasUpdate ? t("settings_update_available") : t("settings_title")}
+          aria-current={activeTab === "settings" ? "page" : undefined}
           className={"icon-btn" + (activeTab === "settings" ? " active" : "") + (hasUpdate ? " update-pulse" : "")}
           style={{
             width: 26, height: 26, borderRadius: 7, cursor: "pointer", flexShrink: 0,
@@ -330,7 +355,7 @@ export function Sidebar({ activeTab, onTabChange, targetsLoaded, hasUpdate, isLi
           onClick={() => onTabChange("settings")}
         >
           <Icon.Settings />
-        </div>
+        </button>
       </div>
     </aside>
   );

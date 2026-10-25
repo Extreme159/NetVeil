@@ -7,7 +7,7 @@ use tokio::time::timeout;
 
 use std::sync::OnceLock;
 
-const PING_TARGETS_URL: &str = "https://netveil.net/ping-targets";
+const PING_TARGETS_URL: &str = "https://api.netveil.net/ping-targets";
 
 // Açılışta bir kez çekilir, sonraki tüm ping testleri bunu kullanır.
 static PING_TARGETS: OnceLock<Vec<PingTarget>> = OnceLock::new();
@@ -96,7 +96,7 @@ async fn fetch_from_server() -> Vec<PingTarget> {
 
     match client.get(PING_TARGETS_URL).send().await {
         Ok(resp) if resp.status().is_success() => {
-            match resp.json::<Vec<PingTarget>>().await {
+            match resp.json::<Vec<serde_json::Value>>().await.map(|raw| crate::remote_list::filter_valid(raw, valid_ping_target)) {
                 Ok(targets) if !targets.is_empty() => {
                     crate::dlog!("[ping] sunucu listesi yüklendi: {} hedef", targets.len());
                     targets
@@ -112,6 +112,11 @@ async fn fetch_from_server() -> Vec<PingTarget> {
             load_default_targets()
         }
     }
+}
+
+/// Sunucu listesi girişi: host halka açık IP / geçerli DNS adı olmalı, tcp_port (varsa) 1..=65535.
+fn valid_ping_target(t: &PingTarget) -> bool {
+    crate::remote_list::is_valid_target_host(&t.host) && t.tcp_port.is_none_or(crate::remote_list::is_valid_port)
 }
 
 fn load_default_targets() -> Vec<PingTarget> {
@@ -250,7 +255,7 @@ pub async fn init_gfn_targets() {
     if GFN_TARGETS.get().is_some() {
         return;
     }
-    if let Some(targets) = fetch_gfn_from_nvidia().await {
+    if let Some(targets) = fetch_gfn_from_nvidia().await.map(|mut t| { t.retain(valid_ping_target); t }).filter(|t| !t.is_empty()) {
         let _ = GFN_TARGETS.set(targets);
         crate::dlog!("[gfn] edge listesi API'den yüklendi");
     } else {
@@ -559,13 +564,21 @@ fn jitter_stddev(samples: &[f64]) -> f64 {
     variance.sqrt()
 }
 
+/// Tek bir TCP connect denemesinin RTT'si (ms). Zaman asimi veya baglanti hatasi => None.
+async fn tcp_connect_rtt(addr: &str, timeout_ms: u64) -> Option<f64> {
+    let start = Instant::now();
+    match timeout(Duration::from_millis(timeout_ms), tokio::net::TcpStream::connect(addr)).await {
+        Ok(Ok(_)) => Some(start.elapsed().as_secs_f64() * 1000.0),
+        _ => None,
+    }
+}
+
 async fn tcp_fallback_ping(server: &PingTarget, ip: &str) -> ServerPingResult {
     // ICMP engelliyse TCP 80/443 ile basit RTT ölç
     // Önemli: TCP bağlanamama != paket kaybı. Bir host ICMP/TCP'yi firewall'layabilir
     // ama erişilebilir olabilir. Bu yüzden:
     // - İlk bağlantı denemesi başarısızsa host unreachable say, loss=0 dön
     // - İlk bağlantı başarılıysa sonraki kaybı gerçek loss say
-    use tokio::net::TcpStream;
 
     const COUNT: usize = 10;
     const WARMUP_COUNT: usize = 3;
@@ -574,14 +587,21 @@ async fn tcp_fallback_ping(server: &PingTarget, ip: &str) -> ServerPingResult {
     // Warmup'ta bağlantı kurup kuramadığımızı tespit et
     let addr443 = format!("{}:443", ip);
     let addr80  = format!("{}:80",  ip);
-    let probe = tokio::join!(
-        timeout(Duration::from_millis(1000), TcpStream::connect(&addr443)),
-        timeout(Duration::from_millis(1000), TcpStream::connect(&addr80)),
+    // Her port KENDI süresiyle ölçülür (join sonrası tek süre ölçmek, 443 hızlı + 80 blackhole
+    // durumunda ~timeout raporluyordu). En hızlı başarılı port döngüde kullanılır.
+    let (rtt443, rtt80) = tokio::join!(
+        tcp_connect_rtt(&addr443, 1000),
+        tcp_connect_rtt(&addr80, 1000),
     );
-    let host_reachable = matches!(probe, (Ok(Ok(_)), _) | (_, Ok(Ok(_))));
+    let chosen_addr: Option<&String> = match (rtt443, rtt80) {
+        (Some(a), Some(b)) => Some(if a <= b { &addr443 } else { &addr80 }),
+        (Some(_), None) => Some(&addr443),
+        (None, Some(_)) => Some(&addr80),
+        (None, None) => None,
+    };
 
     // Host hiç cevap vermiyorsa unreachable dön — loss hesaplama
-    if !host_reachable {
+    let Some(chosen_addr) = chosen_addr else {
         return ServerPingResult {
             category:    server.category.to_string(),
             name:        server.name.to_string(),
@@ -594,7 +614,7 @@ async fn tcp_fallback_ping(server: &PingTarget, ip: &str) -> ServerPingResult {
             grade:       "N/A".to_string(),
             reachable:   false,
         };
-    }
+    };
 
     // Host erişilebilir — şimdi gerçek ölçüm
     let mut latencies = Vec::new();
@@ -602,14 +622,7 @@ async fn tcp_fallback_ping(server: &PingTarget, ip: &str) -> ServerPingResult {
 
     for i in 0..TOTAL {
         let is_warmup = i < WARMUP_COUNT;
-        let start = Instant::now();
-        let outcome: Option<f64> = match tokio::join!(
-            timeout(Duration::from_millis(800), TcpStream::connect(&addr443)),
-            timeout(Duration::from_millis(800), TcpStream::connect(&addr80)),
-        ) {
-            (Ok(Ok(_)), _) | (_, Ok(Ok(_))) => Some(start.elapsed().as_secs_f64() * 1000.0),
-            _ => None,
-        };
+        let outcome: Option<f64> = tcp_connect_rtt(chosen_addr, 800).await;
 
         if !is_warmup {
             match outcome {
@@ -736,4 +749,51 @@ async fn resolve_host(host: &str) -> Option<String> {
 
 fn round2(v: f64) -> f64 {
     (v * 100.0).round() / 100.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn target(host: &str, tcp_port: Option<u16>) -> PingTarget {
+        PingTarget {
+            category: "services".into(), name: "x".into(), region: "x".into(),
+            host: host.into(), display: host.into(), tcp_port, group: None,
+        }
+    }
+
+    #[test]
+    fn gomulu_ve_gfn_listeleri_dogrulamadan_gecer() {
+        let defaults = load_default_targets();
+        assert!(!defaults.is_empty());
+        for t in defaults.iter().chain(gfn_hardcode_fallback().iter()) {
+            assert!(valid_ping_target(t), "{}", t.host);
+        }
+    }
+
+    #[test]
+    fn ping_hedefi_gecersiz_host_veya_port_red() {
+        assert!(valid_ping_target(&target("cloudflare.com", None)));
+        assert!(valid_ping_target(&target("1.1.1.1", Some(443))));
+        assert!(!valid_ping_target(&target("192.168.1.1", None)));
+        assert!(!valid_ping_target(&target("127.0.0.1", Some(80))));
+        assert!(!valid_ping_target(&target("::ffff:10.0.0.1", None)));
+        assert!(!valid_ping_target(&target("169.254.169.254", Some(80))));
+        assert!(!valid_ping_target(&target("localhost", None)));
+        assert!(!valid_ping_target(&target("evil.com:8080", None)));
+        assert!(!valid_ping_target(&target("example.com", Some(0))));
+    }
+
+    #[test]
+    fn sunucu_listesi_bozuk_girdileri_dusurur() {
+        let raw: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"category":"services","name":"ok","region":"r","host":"example.com","display":"example.com"},
+            {"category":"services","name":"lan","region":"r","host":"192.168.0.1","display":"x"},
+            {"category":"services","name":"port","region":"r","host":"example.org","display":"x","tcp_port":70000},
+            {"category":"games","name":"tcp","region":"r","host":"example.net","display":"x","tcp_port":443}
+        ]"#).unwrap();
+        let out = crate::remote_list::filter_valid::<PingTarget>(raw, valid_ping_target);
+        let names: Vec<&str> = out.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(names, ["ok", "tcp"]);
+    }
 }

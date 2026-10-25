@@ -4,7 +4,7 @@
 
 use serde::Serialize;
 use std::net::IpAddr;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 use surge_ping::{Client, Config, PingIdentifier, PingSequence, ICMP};
 use tauri::{AppHandle, Emitter};
@@ -18,7 +18,14 @@ const PING_INTERVAL_MS: u64 = 1000; // ping'ler arası bekleme (1 sn — klasik 
 const MAX_COUNT: u32 = 10_000; // sürekli mod üst sınırı (güvenlik)
 
 // Sürekli mod için durdurma bayrağı (aynı anda tek ping testi varsayımı).
-static RUNNING: AtomicBool = AtomicBool::new(false);
+// Run generation: every start and every stop bumps it. A ping task is "current" only while
+// its own generation equals this value - a stopped/superseded task exits and emits nothing, so
+// it can neither revive after a quick restart nor leak events into the new run's listeners.
+static RUN_GEN: AtomicU64 = AtomicU64::new(0);
+
+fn is_current(run_gen: u64) -> bool {
+    RUN_GEN.load(Ordering::SeqCst) == run_gen
+}
 
 #[derive(Serialize, Clone)]
 struct PingReply {
@@ -59,13 +66,14 @@ pub async fn run_ping_test(
     resolve_hostname: bool,
 ) -> Result<(), String> {
     // Önceki testi durdur (tek aktif test).
-    RUNNING.store(false, Ordering::Relaxed);
-    tokio::time::sleep(Duration::from_millis(50)).await;
+    let run_gen = RUN_GEN.fetch_add(1, Ordering::SeqCst) + 1;
 
     let app2 = app.clone();
     tokio::task::spawn(async move {
-        if let Err(e) = stream_ping(app2, host, ip_version, count, resolve_hostname).await {
-            let _ = app.emit(EVENT_ERROR, e);
+        if let Err(e) = stream_ping(app2, host, ip_version, count, resolve_hostname, run_gen).await {
+            if is_current(run_gen) {
+                let _ = app.emit(EVENT_ERROR, e);
+            }
         }
     });
     Ok(())
@@ -73,7 +81,7 @@ pub async fn run_ping_test(
 
 #[tauri::command]
 pub async fn stop_ping_test() -> Result<(), String> {
-    RUNNING.store(false, Ordering::Relaxed);
+    RUN_GEN.fetch_add(1, Ordering::SeqCst);
     Ok(())
 }
 
@@ -83,6 +91,7 @@ async fn stream_ping(
     ip_version: String,
     count: Option<u32>,
     resolve_hostname: bool,
+    run_gen: u64,
 ) -> Result<(), String> {
     let target = resolve_target(&host, &ip_version).await?;
     let target_ip = target.to_string();
@@ -107,7 +116,10 @@ async fn stream_ping(
         _ => MAX_COUNT,
     };
 
-    RUNNING.store(true, Ordering::Relaxed);
+    // Stopped or superseded while DNS / reverse DNS / socket setup was in flight: do not start.
+    if !is_current(run_gen) {
+        return Ok(());
+    }
 
     let mut sent = 0u32;
     let mut received = 0u32;
@@ -117,8 +129,8 @@ async fn stream_ping(
     let mut jitter_n = 0u32;
 
     for seq in 0..total {
-        if !RUNNING.load(Ordering::Relaxed) {
-            break;
+        if !is_current(run_gen) {
+            return Ok(());
         }
 
         sent += 1;
@@ -149,6 +161,11 @@ async fn stream_ping(
         };
         let jitter_ms = if jitter_n > 0 { jitter_acc / jitter_n as f64 } else { 0.0 };
 
+        // Stopped while the ping was in flight: emit nothing for a stale run.
+        if !is_current(run_gen) {
+            return Ok(());
+        }
+
         let _ = app.emit(
             EVENT_REPLY,
             PingReply {
@@ -166,12 +183,15 @@ async fn stream_ping(
         );
 
         // Son ping değilse aralık kadar bekle.
-        if seq + 1 < total && RUNNING.load(Ordering::Relaxed) {
+        if seq + 1 < total && is_current(run_gen) {
             tokio::time::sleep(Duration::from_millis(PING_INTERVAL_MS)).await;
         }
     }
 
-    RUNNING.store(false, Ordering::Relaxed);
+    // The sleep above may have been interrupted by Stop/restart: a stale run emits no DONE.
+    if !is_current(run_gen) {
+        return Ok(());
+    }
 
     let (min_ms, avg_ms, max_ms) = stats(&rtts);
     let loss_pct = if sent > 0 {
@@ -248,4 +268,21 @@ async fn reverse_dns(ip: &str) -> Option<String> {
         .ok()
         .flatten()
         .filter(|name| name != &ip_str)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Start -> Stop -> immediate Start: neither earlier run may be current again.
+    #[test]
+    fn stale_run_is_not_current_after_stop_and_restart() {
+        let first = RUN_GEN.fetch_add(1, Ordering::SeqCst) + 1;
+        assert!(is_current(first));
+        RUN_GEN.fetch_add(1, Ordering::SeqCst); // stop_ping_test
+        assert!(!is_current(first), "stopped run must be stale (e.g. still resolving DNS)");
+        let second = RUN_GEN.fetch_add(1, Ordering::SeqCst) + 1; // restart
+        assert!(!is_current(first), "stopped run must not revive on restart");
+        assert!(is_current(second));
+    }
 }

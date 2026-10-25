@@ -344,9 +344,9 @@ pub async fn validate_license(_app: AppHandle) -> LicenseStatus {
 
     let client = match build_client() {
         Ok(c) => c,
-        Err(e) => {
+        Err(_e) => {
             // Client oluşturulamadı — grace devam eder
-            crate::dlog!("[license] reqwest client hatası: {}", e);
+            crate::dlog!("[license] reqwest client hatası: {}", _e);
             let grace = cache.valid && is_within_grace(cache.last_validated_at);
             return cache_to_status(&cache, grace);
         }
@@ -366,9 +366,9 @@ pub async fn validate_license(_app: AppHandle) -> LicenseStatus {
 
     let resp = match resp {
         Ok(r) => r,
-        Err(e) => {
+        Err(_e) => {
             // Ağ hatası → cache'e dokunma, grace state döndür
-            crate::dlog!("[license] ağ hatası (grace devam): {}", e);
+            crate::dlog!("[license] ağ hatası (grace devam): {}", _e);
             let grace = cache.valid && is_within_grace(cache.last_validated_at);
             return cache_to_status(&cache, grace);
         }
@@ -376,8 +376,8 @@ pub async fn validate_license(_app: AppHandle) -> LicenseStatus {
 
     let body: ValidateResponse = match resp.json().await {
         Ok(b) => b,
-        Err(e) => {
-            crate::dlog!("[license] parse hatası (grace devam): {}", e);
+        Err(_e) => {
+            crate::dlog!("[license] parse hatası (grace devam): {}", _e);
             let grace = cache.valid && is_within_grace(cache.last_validated_at);
             return cache_to_status(&cache, grace);
         }
@@ -399,8 +399,8 @@ pub async fn validate_license(_app: AppHandle) -> LicenseStatus {
             expires_at: api_expires.clone(),
             last_validated_at: now_unix(),
         };
-        if let Err(e) = write_cache(&updated).await {
-            crate::dlog!("[license] cache yazma hatası: {}", e);
+        if let Err(_e) = write_cache(&updated).await {
+            crate::dlog!("[license] cache yazma hatası: {}", _e);
         }
         LicenseStatus {
             valid: true,
@@ -423,8 +423,8 @@ pub async fn validate_license(_app: AppHandle) -> LicenseStatus {
             expires_at: api_expires.clone(),
             last_validated_at: cache.last_validated_at, // eski zaman damgası korunur
         };
-        if let Err(e) = write_cache(&updated).await {
-            crate::dlog!("[license] cache yazma hatası: {}", e);
+        if let Err(_e) = write_cache(&updated).await {
+            crate::dlog!("[license] cache yazma hatası: {}", _e);
         }
         LicenseStatus {
             valid: false,

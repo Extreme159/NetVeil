@@ -299,6 +299,18 @@
     "en": "Invalid key format — a Twitch stream key must start with \"live_\". Did you paste the wrong text?",
     "tr": "Geçersiz key formatı — Twitch yayın anahtarı \"live_\" ile başlamalı. Yanlış metni mi yapıştırdınız?"
   },
+  "twitch_err_rtmps_unsupported": {
+    "en": "This ingest server does not support secure RTMPS, so the bandwidth test was skipped. Your stream key was NOT sent.",
+    "tr": "Bu yayın sunucusu güvenli RTMPS'i desteklemiyor; bant genişliği testi atlandı. Yayın anahtarınız GÖNDERİLMEDİ."
+  },
+  "twitch_err_tls": {
+    "en": "Secure (TLS) connection to the ingest server failed, so the bandwidth test was skipped. Your stream key was NOT sent.",
+    "tr": "Yayın sunucusuna güvenli (TLS) bağlantı kurulamadı; bant genişliği testi atlandı. Yayın anahtarınız GÖNDERİLMEDİ."
+  },
+  "twitch_err_failed": {
+    "en": "The bandwidth test could not be completed on this server.",
+    "tr": "Bu sunucuda bant genişliği testi tamamlanamadı."
+  },
   "twitch_key_show": {
     "en": "Show stream key",
     "tr": "Yayın anahtarını göster"
@@ -634,6 +646,14 @@
   "synth_g_low_ping": {
     "en": "Low ping gives you fast reactions and accurate hit registration.",
     "tr": "Düşük ping size hızlı tepki ve doğru vuruş kaydı sağlar."
+  },
+  "synth_g_wifi_good": {
+    "en": "A wired or strong Wi-Fi link keeps your connection steady — no wireless interference to worry about.",
+    "tr": "Kablolu ya da güçlü bir Wi-Fi bağlantısı bağlantınızı kararlı tutar — kablosuz parazit endişesi yok."
+  },
+  "synth_g_weak_wifi": {
+    "en": "Wi-Fi is the weak point — signal strength or interference is limiting your connection; a cable or closer position would help.",
+    "tr": "Zayıf nokta Wi-Fi — sinyal gücü veya parazit bağlantınızı sınırlıyor; kablo veya router'a yakın konum yardımcı olur."
   },
   "synth_g_stable": {
     "en": "Stable timing (low jitter) keeps gameplay smooth with no random spikes.",
@@ -1251,6 +1271,10 @@
     "en": "In practice: when you visit a site, you reach the real server — not a copy or a middleman inserted by the provider.",
     "tr": "Pratikte: bir siteyi ziyaret ettiğinizde gerçek sunucuya ulaşıyorsunuz — sağlayıcının araya soktuğu bir kopya veya aracıya değil."
   },
+  "insight_isp_partial": {
+    "en": "Some interference checks could not be completed, so the connection cannot be called fully clean — re-run the test for a complete picture.",
+    "tr": "Bazı müdahale kontrolleri tamamlanamadı; bu yüzden bağlantı tamamen temiz denemez — tam sonuç için testi yeniden çalıştırın."
+  },
   "insight_isp_dns_hijack": {
     "en": "DNS hijacking detected: your ISP quietly answers 'which server?' queries itself instead of letting them through. Often used for ad/redirect pages or blocks — switching to encrypted DNS (DoH/DoT) bypasses it.",
     "tr": "DNS hijacking tespit edildi: ISP'niz 'hangi sunucu?' sorularını geçirmek yerine sessizce kendisi yanıtlıyor. Genelde reklam/yönlendirme sayfaları veya engeller için kullanılır — şifreli DNS'e (DoH/DoT) geçmek bunu aşar."
@@ -1483,6 +1507,22 @@
     "en": "Severe interference. Possible MITM — security risk; verify certificates, use a trusted VPN.",
     "tr": "Ciddi müdahale. Olası MITM — güvenlik riski; sertifikaları doğrulayın, güvenilir VPN kullanın."
   },
+  "diag_latency_unavailable": {
+    "en": "Not measured — no ping server responded.",
+    "tr": "Ölçülmedi — hiçbir ping sunucusu yanıt vermedi."
+  },
+  "diag_jitter_unavailable": {
+    "en": "Not measured — no ping server responded.",
+    "tr": "Ölçülmedi — hiçbir ping sunucusu yanıt vermedi."
+  },
+  "diag_loss_unavailable": {
+    "en": "Not measured — no ping server responded.",
+    "tr": "Ölçülmedi — hiçbir ping sunucusu yanıt vermedi."
+  },
+  "diag_bufferbloat_unavailable": {
+    "en": "Not measured — the bufferbloat test did not complete.",
+    "tr": "Ölçülmedi — bufferbloat testi tamamlanamadı."
+  },
   "diag_isp_intervention_unavailable": {
     "en": "Not measured — run the ISP Interference test.",
     "tr": "Ölçülmedi — ISP Müdahale testini çalıştırın."
@@ -1603,6 +1643,10 @@
     "en": "Idle",
     "tr": "Boşta"
   },
+  "speed_measure_note": {
+    "en": "NetVeil reports your stable real-world speed — the rate held consistently during the test, not a brief peak. It measures actual usable data (after network overhead), so it may read slightly below the speed your internet provider advertises.",
+    "tr": "NetVeil, test boyunca kararlı şekilde tutturulan gerçek hızı gösterir — anlık en yüksek değeri değil. Kullanılabilir net veriyi (ağ üzerindeki fazladan yükü çıkararak) ölçtüğü için, internet sağlayıcınızın taahhüt ettiği hızın biraz altında çıkabilir."
+  },
   "speed_cf_cdn": {
     "en": "Cloudflare CDN",
     "tr": "Cloudflare CDN"
@@ -1618,6 +1662,109 @@
   "bloat_saturating": {
     "en": "Saturating connection…",
     "tr": "Bağlantı satüre ediliyor…"
+  },
+  "err_upload_unconfirmed": {
+    "en": "Upload measurement failed: the server did not confirm the uploaded data, so the result cannot be trusted. Please try again.",
+    "tr": "Yükleme ölçümü başarısız: sunucu gönderilen veriyi onaylamadı, sonuç güvenilir değil. Lütfen tekrar deneyin."
+  },
+  "err_no_data": {
+    "en": "Measurement failed: no data was transferred ({phase}).",
+    "tr": "Ölçüm başarısız: veri aktarılamadı ({phase})."
+  },
+  "err_phase_download": { "en": "download", "tr": "indirme" },
+  "err_phase_upload": { "en": "upload", "tr": "yükleme" },
+  "err_phase_bufferbloat_dl": { "en": "bufferbloat download load", "tr": "bufferbloat indirme yükü" },
+  "err_phase_bufferbloat_ul": { "en": "bufferbloat upload load", "tr": "bufferbloat yükleme yükü" },
+  "err_phase_bufferbloat_bidi_dl": { "en": "bufferbloat bidirectional download load", "tr": "bufferbloat çift yönlü indirme yükü" },
+  "err_phase_bufferbloat_bidi_ul": { "en": "bufferbloat bidirectional upload load", "tr": "bufferbloat çift yönlü yükleme yükü" },
+  "err_bb_phase_idle": { "en": "idle", "tr": "boşta" },
+  "err_bb_phase_download": { "en": "download load", "tr": "indirme yükü" },
+  "err_bb_phase_upload": { "en": "upload load", "tr": "yükleme yükü" },
+  "err_bb_phase_bidirectional": { "en": "bidirectional load", "tr": "çift yönlü yük" },
+  "err_bb_samples": {
+    "en": "Bufferbloat measurement unavailable: only {got} valid latency replies during {phase} (need {need}). ICMP may be blocked or the link dropped the probes.",
+    "tr": "Bufferbloat ölçümü yapılamadı: {phase} sırasında yalnızca {got} geçerli gecikme yanıtı alındı ({need} gerekli). ICMP engellenmiş olabilir veya bağlantı probları düşürdü."
+  },
+  "err_bb_probes": {
+    "en": "Bufferbloat measurement unavailable: only {got} probes were sent/answered during {phase} (need {need}). ICMP may be blocked or the probes could not be sent.",
+    "tr": "Bufferbloat ölçümü yapılamadı: {phase} sırasında yalnızca {got} prob gönderildi/yanıtlandı ({need} gerekli). ICMP engellenmiş olabilir veya problar gönderilemedi."
+  },
+  "synth_insufficient_data": {
+    "en": "Not enough measurements to grade your network — run the latency, bufferbloat or speed tests first.",
+    "tr": "Ağınızı notlandırmak için yeterli ölçüm yok — önce gecikme, bufferbloat veya hız testlerini çalıştırın."
+  },
+  "diag_status_unknown": { "en": "Unknown", "tr": "Belirsiz" },
+  "diag_overall_unknown": {
+    "en": "No network-quality measurement (latency, jitter, loss, bufferbloat, speed) is available, so an overall status cannot be determined.",
+    "tr": "Ağ kalitesi ölçümü (gecikme, jitter, kayıp, bufferbloat, hız) bulunmadığından genel durum belirlenemedi."
+  },
+  "isp_det_mitm_clean": {
+    "en": "TLS certificate validated by a real public CA — no MITM detected.",
+    "tr": "TLS sertifikası gerçek bir genel CA tarafından doğrulandı — MITM tespit edilmedi."
+  },
+  "isp_det_mitm_clean_rotation": {
+    "en": "TLS certificate validated by a real public CA on both checks (leaf certificates differ — normal CDN rotation) — no MITM detected.",
+    "tr": "TLS sertifikası her iki kontrolde de gerçek bir genel CA tarafından doğrulandı (yaprak sertifikalar farklı — normal CDN rotasyonu) — MITM tespit edilmedi."
+  },
+  "isp_det_mitm_injected_root": {
+    "en": "The certificate only validates with the system CA store, not with real public CAs ({err}). A root certificate installed on this system may be intercepting TLS traffic (corporate/antivirus MITM proxy).",
+    "tr": "Sertifika yalnızca sistem CA deposuyla doğrulanıyor, gerçek genel CA'larla doğrulanmıyor ({err}). Bu sisteme kurulu bir kök sertifika TLS trafiğini araya girerek dinliyor olabilir (kurumsal/antivirüs MITM proxy)."
+  },
+  "isp_det_mitm_invalid_cert": {
+    "en": "TLS certificate validation failed on both trust stores: {err}",
+    "tr": "TLS sertifika doğrulaması her iki güven deposunda da başarısız oldu: {err}"
+  },
+  "isp_det_mitm_inconclusive": {
+    "en": "Could not verify TLS to {host} (system store: {native}; public CAs: {webpki}).",
+    "tr": "{host} için TLS doğrulanamadı (sistem deposu: {native}; genel CA'lar: {webpki})."
+  },
+  "isp_det_proxy_unusable": {
+    "en": "The test server returned an unusable response; test skipped.",
+    "tr": "Test sunucusu kullanılamaz bir yanıt döndürdü; test atlandı."
+  },
+  "isp_det_ports_ok": {
+    "en": "{n} ports tested, {blocked} gave no response (may be expected).",
+    "tr": "{n} port test edildi, {blocked} tanesi yanıt vermedi (beklenen olabilir)."
+  },
+  "isp_det_ports_critical": {
+    "en": "Critical ports (80/443) blocked — possible ISP intervention.",
+    "tr": "Kritik portlar (80/443) engelli — olası ISS müdahalesi."
+  },
+  "err_voip_send_blocked": {
+    "en": "Network error: UDP send blocked past the time limit (sent {sent}/{total} packets).",
+    "tr": "Ağ hatası: UDP gönderimi süre sınırını aşarak takıldı ({sent}/{total} paket gönderildi)."
+  },
+  "err_voip_probe_timeout": {
+    "en": "Network error: the probe did not complete within the time limit (sent {sent}/{total} packets).",
+    "tr": "Ağ hatası: prob süre sınırı içinde tamamlanamadı ({sent}/{total} paket gönderildi)."
+  },
+  "err_voip_send_failed": {
+    "en": "Network error: UDP send failed {n} times in a row ({err}).",
+    "tr": "Ağ hatası: UDP gönderimi art arda {n} kez başarısız oldu ({err})."
+  },
+  "err_voip_addr_validation": {
+    "en": "Address validation failed ({n} attempts): {reason}.",
+    "tr": "Adres doğrulaması başarısız ({n} deneme): {reason}."
+  },
+  "err_voip_addr_reason_no_reply": {
+    "en": "the server did not respond (it may be busy or unreachable)",
+    "tr": "sunucu yanıt vermedi (meşgul veya erişilemez olabilir)"
+  },
+  "err_voip_addr_reason_validation_failed": {
+    "en": "address validation could not be completed",
+    "tr": "adres doğrulaması tamamlanamadı"
+  },
+  "err_voip_addr_reason_no_accept": {
+    "en": "the confirmation was sent but the session could not be opened (the server may be busy)",
+    "tr": "doğrulama yanıtı gönderildi ancak oturum açılamadı (sunucu meşgul olabilir)"
+  },
+  "err_voip_addr_reason_socket": {
+    "en": "a network socket error occurred",
+    "tr": "ağ soketi hatası oluştu"
+  },
+  "err_voip_proto_v1": {
+    "en": "The server responded with the legacy (v1) protocol — a server update is required.",
+    "tr": "Sunucu eski protokol (v1) yanıtı verdi — sunucu güncellemesi gerekli."
   },
   "err_server_busy": {
     "en": "Server is busy — another user is running a test. Please try again in ~30 seconds.",
@@ -1995,6 +2142,10 @@
     "en": "No throttling detected",
     "tr": "Daraltma tespit edilmedi"
   },
+  "throttle_inconclusive": {
+    "en": "Inconclusive — some protocols could not be measured",
+    "tr": "Sonuç belirsiz — bazı protokoller ölçülemedi"
+  },
   "throttle_baseline_info": {
     "en": "Baseline: {mbps} Mbps · Test server: netveil.net · Frankfurt",
     "tr": "Baseline: {mbps} Mbps · Test sunucusu: netveil.net · Frankfurt"
@@ -2027,6 +2178,10 @@
     "en": "Blocked",
     "tr": "Engellenmiş"
   },
+  "throttle_verdict_error": {
+    "en": "Not measured",
+    "tr": "Ölçülemedi"
+  },
   "throttle_verdict_pending": {
     "en": "Pending",
     "tr": "Yakında"
@@ -2058,6 +2213,18 @@
   "isp_detected_sub": {
     "en": "Anomaly found in one or more tests.",
     "tr": "Bir veya daha fazla testte anormallik bulundu."
+  },
+  "isp_inconclusive_title": {
+    "en": "No Intervention Detected (Some Tests Inconclusive)",
+    "tr": "M\u00fcdahale Tespit Edilmedi (Baz\u0131 Testler Belirsiz)"
+  },
+  "isp_inconclusive_sub": {
+    "en": "No test found an anomaly, but one or more tests could not be completed, so the network is not confirmed clean.",
+    "tr": "Hi\u00e7bir test anormallik bulmad\u0131 ancak bir veya daha fazla test tamamlanamad\u0131; a\u011f\u0131n tamamen temiz oldu\u011fu do\u011frulanamad\u0131."
+  },
+  "isp_extra_port_filtered": {
+    "en": "No response (possibly filtered): ",
+    "tr": "Yan\u0131t yok (filtrelenmi\u015f olabilir): "
   },
   "isp_not_detected_sub": {
     "en": "All tests passed clean, no signs of network intervention.",
@@ -2343,6 +2510,22 @@
     "en": "IPv6 DNS resolution is not working. Check your DNS server (e.g. 2606:4700:4700::1111).",
     "tr": "IPv6 DNS çözümlemesi çalışmıyor. DNS sunucunuzu kontrol edin (örn. 2606:4700:4700::1111)."
   },
+  "ipv6_rec_no_transport": {
+    "en": "You have a global IPv6 address, but no IPv6 connection to the internet could be established. Check your router's IPv6 settings or firewall.",
+    "tr": "Global bir IPv6 adresiniz var ancak internete IPv6 ba\u011flant\u0131s\u0131 kurulamad\u0131. Router'\u0131n\u0131z\u0131n IPv6 ayarlar\u0131n\u0131 veya g\u00fcvenlik duvar\u0131n\u0131 kontrol edin."
+  },
+  "ipv6_transport": {
+    "en": "IPv6 Internet Reachability",
+    "tr": "IPv6 \u0130nternet Eri\u015fimi"
+  },
+  "ipv6_transport_yes": {
+    "en": "Reachable",
+    "tr": "Eri\u015filebilir"
+  },
+  "ipv6_transport_no": {
+    "en": "Not reachable",
+    "tr": "Eri\u015filemiyor"
+  },
   "ipv6_rec_good": {
     "en": "Your IPv6 implementation looks good.",
     "tr": "IPv6 implementasyonunuz iyi görünüyor."
@@ -2450,6 +2633,10 @@
   "dns_btn_run": {
     "en": "Start Benchmark",
     "tr": "Benchmark Başlat"
+  },
+  "dns_error_label": {
+    "en": "Error:",
+    "tr": "Hata:"
   },
   "dns_running_title": {
     "en": "DNS Benchmark Running…",
@@ -2732,16 +2919,16 @@
     "tr": "IEEE 802.11-2020 §17.3.9.3"
   },
   "wifi_scan_note_24_detail": {
-    "en": "In the 2.4 GHz band, only channels 1, 6 and 11 are non-overlapping (22 MHz channel width). Other channels cause interference with neighboring networks, degrading performance. APs with the same MAC OUI (virtual BSS) were excluded from the interference calculation.",
-    "tr": "2.4 GHz bandında sadece kanal 1, 6 ve 11 birbirleriyle örtüşmez (22 MHz kanal genişliği). Diğer kanallar komşu ağlarla parazit yaratarak performansı düşürür. Aynı MAC OUI'li AP'ler (sanal BSS) parazit hesabına dahil edilmedi."
+    "en": "In the 2.4 GHz band, only channels 1, 6 and 11 are non-overlapping (22 MHz channel width). Other channels cause interference with neighboring networks, degrading performance. Own APs are excluded: same SSID, connected BSSID, or same-device virtual BSSIDs differing only in the last byte / locally administered bits. Same-brand neighbors are counted.",
+    "tr": "2.4 GHz bandında sadece kanal 1, 6 ve 11 birbirleriyle örtüşmez (22 MHz kanal genişliği). Diğer kanallar komşu ağlarla parazit yaratarak performansı düşürür. Kendi AP'leriniz hariç tutulur: aynı SSID, bağlı BSSID veya yalnızca son baytı / yerel yönetim bitleri farklı olan aynı cihazın sanal BSSID'leri. Aynı marka komşular hesaba katılır."
   },
   "wifi_scan_note_5_ref": {
     "en": "FCC Part 15E / ETSI EN 301 893",
     "tr": "FCC Part 15E / ETSI EN 301 893"
   },
   "wifi_scan_note_5_detail": {
-    "en": "UNII-1/UNII-3 channels do not require DFS — no radar check, the router will not change channel. DFS channels (UNII-2A/2C) are recommended only when there is a clear advantage. APs with the same OUI (multi-SSID / virtual BSS) were excluded.",
-    "tr": "UNII-1/UNII-3 kanalları DFS gerektirmez — radar check yok, router kanal değiştirmez. DFS kanalları (UNII-2A/2C) yalnızca belirgin avantajda önerilir. Aynı OUI'li AP'ler (multi-SSID / sanal BSS) hariç tutuldu."
+    "en": "UNII-1/UNII-3 channels do not require DFS — no radar check, the router will not change channel. DFS channels (UNII-2A/2C) are recommended only when there is a clear advantage. Own APs are excluded: same SSID, connected BSSID, or same-device virtual BSSIDs differing only in the last byte / locally administered bits. Same-brand neighbors are counted.",
+    "tr": "UNII-1/UNII-3 kanalları DFS gerektirmez — radar check yok, router kanal değiştirmez. DFS kanalları (UNII-2A/2C) yalnızca belirgin avantajda önerilir. Kendi AP'leriniz hariç tutulur: aynı SSID, bağlı BSSID veya yalnızca son baytı / yerel yönetim bitleri farklı olan aynı cihazın sanal BSSID'leri. Aynı marka komşular hesaba katılır."
   },
   "wifi_scan_note_6_ref": {
     "en": "IEEE 802.11ax-2021 (Wi-Fi 6E/7) PSC",
@@ -2892,8 +3079,8 @@
     "tr": "DNS ve IP Sızıntı Denetimi"
   },
   "dns_leak_intro_desc": {
-    "en": "This test measures your application's DNS and UDP traffic exit paths by querying an echo resolver and STUN server, then compares these with your WAN IP to determine if any DNS queries are leaking through your real connection.\n\nEstimated time: ~5 sec",
-    "tr": "Bu test, bir echo resolver ve STUN sunucusu sorgulayarak uygulamanızın DNS ve UDP trafiğinin çıkış yollarını ölçer, ardından bu bilgileri WAN IP'nizle karşılaştırarak DNS sorgularının gerçek bağlantınız üzerinden sızıp sızmadığını belirler.\n\nTahmini test süresi: ~5 sn"
+    "en": "This test measures your application's DNS and UDP traffic exit paths by querying an echo resolver and STUN server, and shows which IP your DNS queries leave from next to your WAN IP, so you can check whether they leave through your ISP or your VPN.\n\nEstimated time: ~5 sec",
+    "tr": "Bu test, bir echo resolver ve STUN sunucusu sorgulayarak uygulamanızın DNS ve UDP trafiğinin çıkış yollarını ölçer, ardından DNS sorgularınızın hangi IP'den çıktığını WAN IP'nizin yanında göstererek ISP'niz üzerinden mi yoksa VPN'iniz üzerinden mi çıktığını kontrol etmenizi sağlar.\n\nTahmini test süresi: ~5 sn"
   },
   "dns_leak_run_btn": {
     "en": "Run Audit",
@@ -2914,6 +3101,18 @@
   "dns_leak_verdict_leak": {
     "en": "DNS Leak Detected",
     "tr": "DNS Sızıntısı Tespit Edildi"
+  },
+  "dns_leak_verdict_info": {
+    "en": "DNS Exit Measured (Informational)",
+    "tr": "DNS Çıkışı Ölçüldü (Bilgi)"
+  },
+  "dns_leak_detail_info": {
+    "en": "These are the IPs your DNS queries leave from. This test cannot tell whether they belong to your ISP or a third-party provider, so no leak verdict is given. With no VPN active, DNS resolved by your ISP is expected.",
+    "tr": "DNS sorgularınızın çıktığı IP'ler bunlardır. Bu test, IP'lerin ISP'nize mi yoksa üçüncü bir sağlayıcıya mı ait olduğunu belirleyemez; bu yüzden sızıntı kararı verilmez. VPN aktif değilken DNS'in ISP'niz tarafından çözülmesi beklenen bir durumdur."
+  },
+  "dns_leak_detail_info_vpn": {
+    "en": "A VPN looks active. Compare the DNS Exit IP with your ISP and VPN provider: if it belongs to your ISP while the VPN is on, your DNS is leaking outside the tunnel. If it belongs to your VPN provider (or a DNS service you chose), it is not. This test cannot tell which automatically.",
+    "tr": "VPN aktif görünüyor. DNS Çıkış IP'sini ISP'niz ve VPN sağlayıcınızla karşılaştırın: VPN açıkken IP ISP'nize aitse DNS'iniz tünelin dışına sızıyordur; VPN sağlayıcınıza (veya seçtiğiniz bir DNS servisine) aitse sızmıyordur. Bu test hangisi olduğunu otomatik belirleyemez."
   },
   "dns_leak_verdict_unknown": {
     "en": "Could Not Determine",
@@ -3295,9 +3494,13 @@
     "en": "MOS ≥ 3.1 — acceptable quality, some users may notice slight degradation.",
     "tr": "MOS ≥ 3.1 — kabul edilebilir kalite, bazı kullanıcılar hafif bozulma fark edebilir."
   },
+  "insight_voip_marginal": {
+    "en": "MOS ≥ 2.6 — marginal quality, occasional voice artifacts likely. Reducing latency/loss recommended.",
+    "tr": "MOS ≥ 2.6 — sınırda kalite, ara sıra ses bozulması olası. Gecikme/kaybı azaltmak önerilir."
+  },
   "insight_voip_poor": {
-    "en": "MOS < 3.1 — poor call quality, voice is noticeably degraded. Reduce latency and packet loss.",
-    "tr": "MOS < 3.1 — zayıf arama kalitesi, ses belirgin şekilde bozulmuş. Gecikme ve paket kaybını azaltın."
+    "en": "MOS < 2.6 — poor call quality, voice is noticeably degraded. Reduce latency and packet loss.",
+    "tr": "MOS < 2.6 — zayıf arama kalitesi, ses belirgin şekilde bozulmuş. Gecikme ve paket kaybını azaltın."
   },
   "insight_voip_udp_real": {
     "en": "Real UDP probes (not ICMP) — directly simulates VoIP traffic patterns.",
@@ -3898,5 +4101,36 @@
   "nav_get_pro": {
     "en": "Get Pro",
     "tr": "Pro Edin"
+  },
+  "test_busy_hint": {
+    "en": "Another test is running — wait for it to finish before starting a new one.",
+    "tr": "Başka bir test çalışıyor — yenisini başlatmak için bitmesini bekleyin."
+  },
+  "bloat_legend_idle": { "en": "Idle", "tr": "Bo\u015fta" },
+  "bloat_legend_download": { "en": "Download", "tr": "\u0130ndirme" },
+  "bloat_legend_upload": { "en": "Upload", "tr": "Y\u00fckleme" },
+  "bloat_legend_bidi": { "en": "Bi-Directional", "tr": "\u00c7ift Y\u00f6nl\u00fc" },
+  "bloat_sample_unit": { "en": "samples", "tr": "\u00f6rnek" },
+  "trace_resolve_hostnames": { "en": "Resolve Hostnames", "tr": "Hostname \u00c7\u00f6z\u00fcmle" },
+  "trace_style": { "en": "Style", "tr": "Stil" },
+  "render_error_title": { "en": "\u26a0 Render Error", "tr": "\u26a0 Render Hatas\u0131" },
+  "pdf_lbl_provider": { "en": "Provider", "tr": "Sağlayıcı" },
+  "pdf_lbl_dns_providers": { "en": "DNS providers (median latency)", "tr": "DNS sağlayıcıları (medyan gecikme)" },
+  "pdf_lbl_dns_recommended": { "en": "Recommended", "tr": "Önerilen" },
+  "stability_startup_err": {
+    "en": "Could not read or change the start-with-Windows setting: {err}",
+    "tr": "Windows ile ba\u015flat ayar\u0131 okunamad\u0131 veya de\u011fi\u015ftirilemedi: {err}"
+  },
+  "btn_run_again": {
+    "en": "Run again",
+    "tr": "Tekrar çalıştır"
+  },
+  "trademark_short": {
+    "en": "All trademarks are property of their respective owners. Use does not imply endorsement or affiliation.",
+    "tr": "Tüm ticari markalar ilgili sahiplerinin malıdır. Kullanım, onay veya bağlılık anlamına gelmez."
+  },
+  "trademark_full": {
+    "en": "All product names, logos, trademarks, and registered trademarks displayed in this application are the property of their respective owners. These marks are used solely to identify the network services being measured and do not imply endorsement, sponsorship, or affiliation. NetVeil is an independent product and is not affiliated with, endorsed by, or officially connected to any of the services displayed.",
+    "tr": "Bu uygulamada gösterilen tüm ürün adları, logolar ve ticari markalar ilgili sahiplerinin malıdır. Bu işaretler yalnızca ölçülen ağ servislerini tanımlamak için kullanılır; herhangi bir onay, sponsorluk veya bağlılık anlamına gelmez. NetVeil bağımsız bir üründür ve gösterilen servislerin hiçbiriyle resmi bağlantısı yoktur."
   }
 }

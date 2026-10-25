@@ -30,3 +30,6 @@ context.md
 # Yerel gecici dosyalar (commit etme)
 *.bat
 Yeni Metin Belgesi.txt
+
+# Dahili arastirma dosyalari (public/repo'ya gitmez)
+.research-*.md

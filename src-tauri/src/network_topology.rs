@@ -45,7 +45,7 @@ pub fn detect_default_gateway() -> Option<IpAddr> {
 #[cfg(windows)]
 fn detect_gateway_windows() -> Option<IpAddr> {
     // PowerShell — DestinationPrefix 0.0.0.0/0 olan, en düşük RouteMetric'li route'un NextHop'u
-    let output = Command::new("powershell")
+    let output = Command::new(crate::powershell_exe())
         .args([
             "-NoProfile",
             "-Command",
@@ -66,7 +66,7 @@ fn detect_gateway_windows() -> Option<IpAddr> {
 
 #[cfg(windows)]
 fn detect_gateway_ipconfig() -> Option<IpAddr> {
-    let output = Command::new("ipconfig").no_window().output().ok()?;
+    let output = Command::new(crate::win_system32("ipconfig.exe")).no_window().output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     for line in text.lines() {
         let lower = line.to_lowercase();
@@ -302,7 +302,7 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
     let Ok(client) = reqwest::Client::builder().timeout(Duration::from_secs(5)).build()
         else { return Ok(fallback); };
 
-    let Ok(resp) = client.get("https://netveil.net/version").send().await
+    let Ok(resp) = client.get("https://api.netveil.net/version").send().await
         else { return Ok(fallback); };
 
     let Ok(vr) = resp.json::<VersionResponse>().await
@@ -316,7 +316,113 @@ pub async fn check_for_update() -> Result<UpdateInfo, String> {
         current_version: current,
         latest_version: vr.version,
         has_update,
-        download_url: vr.url.unwrap_or_else(|| "https://github.com/Extreme159/NetVeil/releases/latest".into()),
+        download_url: validated_update_url(vr.url.as_deref()),
         release_notes: vr.notes.unwrap_or_default(),
     })
+}
+
+const DEFAULT_UPDATE_URL: &str = "https://github.com/Extreme159/NetVeil/releases/latest";
+
+/// `v0.9.19`, `v1.0.0-beta1` biçimli sürüm etiketi (nokta-dizisi yalnızca rakam; `..` geçmez).
+fn is_release_version(s: &str) -> bool {
+    let Some(rest) = s.strip_prefix('v') else { return false };
+    let mut parts = rest.split('-');
+    let core = parts.next().unwrap_or("");
+    !core.is_empty()
+        && core.split('.').all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+        && parts.all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric()))
+}
+
+/// Yayın dosyası adı: nokta-ayrık, boş olmayan `[A-Za-z0-9_-]` parçaları (`.`/`..` geçmez).
+fn is_release_asset(s: &str) -> bool {
+    s.split('.').all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'))
+}
+
+/// `/Extreme159/NetVeil/releases` + (`` | `/latest` | `/tag/vX` | `/download/vX/asset`) + isteğe bağlı `/`.
+/// tauri.conf.json `plugins.shell.open` düzenli ifadesindeki github şekliyle aynı olmalı.
+fn is_release_path(path: &str) -> bool {
+    let Some(rest) = path.strip_prefix("/Extreme159/NetVeil/releases") else { return false };
+    let rest = rest.strip_suffix('/').unwrap_or(rest);
+    if rest.is_empty() || rest == "/latest" {
+        return true;
+    }
+    let segs: Vec<&str> = rest.split('/').collect();
+    match segs.as_slice() {
+        ["", "tag", v] => is_release_version(v),
+        ["", "download", v, asset] => is_release_version(v) && is_release_asset(asset),
+        _ => false,
+    }
+}
+
+/// Sunucudan gelen güncelleme bağlantısını doğrular: yalnızca GitHub sürüm yolları
+/// (`/releases`, `/releases/latest`, `/releases/tag/vX`, `/releases/download/vX/dosya`).
+/// Url::parse yolu normalleştirir (`..`/`%2e%2e` segmentleri çözülür); host/şema/kimlik bilgisi/port/sorgu/parça kontrol edilir.
+/// Geçersiz ya da yoksa sabit varsayılan sürüm sayfasına düşer (sunucu keyfi URL enjekte edemez).
+fn validated_update_url(raw: Option<&str>) -> String {
+    let Some(raw) = raw else { return DEFAULT_UPDATE_URL.into() };
+    let Ok(u) = reqwest::Url::parse(raw.trim()) else { return DEFAULT_UPDATE_URL.into() };
+    let path_ok = is_release_path(u.path());
+    let ok = u.scheme() == "https"
+        && u.query().is_none()
+        && u.fragment().is_none()
+        && u.host_str() == Some("github.com")
+        && u.port().is_none()
+        && u.username().is_empty()
+        && u.password().is_none()
+        && path_ok;
+    if ok { u.into() } else { DEFAULT_UPDATE_URL.into() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_url_github_releases_kabul() {
+        for u in [
+            "https://github.com/Extreme159/NetVeil/releases/latest",
+            "https://github.com/Extreme159/NetVeil/releases",
+            "https://github.com/Extreme159/NetVeil/releases/tag/v0.9.19",
+            "https://github.com/Extreme159/NetVeil/releases/tag/v1.0.0-beta1",
+            "https://github.com/Extreme159/NetVeil/releases/download/v0.9.19/NetVeil-v0.9.19-portable.exe",
+            "https://github.com/Extreme159/NetVeil/releases/",
+        ] {
+            assert_eq!(validated_update_url(Some(u)), u);
+        }
+    }
+
+    #[test]
+    fn update_url_gecersiz_varsayilana_duser() {
+        for u in [
+            "http://github.com/Extreme159/NetVeil/releases/latest",
+            "https://evil.example/Extreme159/NetVeil/releases/latest",
+            "https://github.com.evil.example/Extreme159/NetVeil/releases/latest",
+            "https://github.com@evil.example/Extreme159/NetVeil/releases/latest",
+            "https://user:pw@github.com/Extreme159/NetVeil/releases/latest",
+            "https://github.com:8443/Extreme159/NetVeil/releases/latest",
+            "https://github.com/Extreme159/NetVeil/releases-evil",
+            "https://github.com/Extreme159/NetVeil/releases/../../evil/x",
+            "https://github.com/Extreme159/NetVeil/releases/../../Other/Repo",
+            "https://github.com/Extreme159/NetVeil/releases/%2e%2e/%2e%2e/Other/Repo",
+            "https://github.com/Extreme159/NetVeil/releases/%2E%2E/Other",
+            "https://github.com/Extreme159/NetVeil/releases/tag/v..",
+            "https://github.com/Extreme159/NetVeil/releases/tag/v0.9.19/extra",
+            "https://github.com/Extreme159/NetVeil/releases/tag/v0.9.19?x=1",
+            "https://github.com/Extreme159/NetVeil/releases/latest#frag",
+            "https://github.com/Extreme159/NetVeil/releases/download/v0.9.19/..",
+            "https://github.com/Extreme159/NetVeil/releases/download/v0.9.19/a%2fb",
+            "https://github.com/Extreme159/NetVeil/releases/download/v0.9.19/a..b",
+            "https://github.com/Extreme159/NetVeil/releases/expanded_assets/v0.9.19",
+            "https://github.com/Extreme159/NetVeil/releases//latest",
+            "https://github.com/Other/NetVeil/releases/latest",
+            "javascript:alert(1)",
+            "file:///C:/Windows/System32/calc.exe",
+            "ftp://github.com/Extreme159/NetVeil/releases",
+            "not a url",
+            "",
+        ] {
+            assert_eq!(validated_update_url(Some(u)), DEFAULT_UPDATE_URL, "{u}");
+        }
+        assert_eq!(validated_update_url(None), DEFAULT_UPDATE_URL);
+    }
 }

@@ -50,7 +50,7 @@ function addrTypeLabel(type: string): string {
   const map: Record<string, string> = {
     Native: "Native 🟢", Teredo: "Teredo 🟡", "6to4": "6to4 🟡",
     Tunnel: `${t("ipv6_type_tunnel")} (6in4) 🟡`, ISATAP: "ISATAP 🟡",
-    LinkLocal: "Link-Local", Unknown: t("ipv6_type_unknown"),
+    LinkLocal: "Link-Local", UniqueLocal: "Unique-Local (ULA)", Unknown: t("ipv6_type_unknown"),
   };
   return map[type] ?? type;
 }
@@ -71,6 +71,7 @@ function ConnectivityCard({ info }: { info: Ipv6ConnectivityInfo }) {
         {[
           [t("ipv6_native"),  info.has_native_ipv6 ? t("ipv6_native_yes") : t("ipv6_native_no"),     info.has_native_ipv6 ? "#22c55e" : "#ef4444"],
           [t("ipv6_dns_aaaa"), info.dns_ipv6_works  ? t("ipv6_dns_works") : t("ipv6_dns_broken"),    info.dns_ipv6_works  ? "#22c55e" : "#ef4444"],
+          [t("ipv6_transport"), info.ipv6_transport_works === undefined ? "\u2014" : info.ipv6_transport_works ? t("ipv6_transport_yes") : t("ipv6_transport_no"), info.ipv6_transport_works ? "#22c55e" : info.ipv6_transport_works === false ? "#ef4444" : "var(--text-muted)"],
           [t("ipv6_tunnel"),  info.has_tunnel_only  ? t("ipv6_tunnel_yes") : t("ipv6_tunnel_no"),    info.has_tunnel_only ? "#f59e0b" : "var(--text-muted)"],
           [t("ipv6_wan"),     info.wan_ipv6 ?? "—",                                                   info.wan_ipv6 ? "#86efac" : "var(--text-muted)"],
           [t("ipv6_gateway"), info.gateway_v6 ?? "—",                                                 info.gateway_v6 ? "#86efac" : "var(--text-muted)"],
@@ -127,7 +128,7 @@ function QualityCard({ q }: { q: Ipv6QualityScore }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {q.recommendations.map((r, i) => {
-              const text = t(r as any);
+              const text = t(r as Parameters<typeof t>[0]);
               return (
                 <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                   <span style={{ color: "#3b82f6", fontSize: 14, lineHeight: "18px", flexShrink: 0 }}>›</span>
@@ -176,7 +177,7 @@ export function Ipv6Tab({ result, phase, onRun }: Props) {
         dns_benchmark: null, twitch: null,
       },
     }).then(setVerdict).catch(() => setVerdict(null));
-  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [result]);
 
 
   function phaseMsg(ph: string | null): string {
@@ -219,6 +220,7 @@ export function Ipv6Tab({ result, phase, onRun }: Props) {
         </>
       ) : !isRunning ? (
         <TestIntro
+          guarded
           iconKey="Globe"
           title={t("tab_ipv6_title")}
           description={t("ipv6_intro_desc")}

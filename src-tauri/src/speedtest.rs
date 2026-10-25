@@ -19,8 +19,9 @@ pub struct SpeedProgress {
 pub struct SpeedTestResult {
     pub download_mbps: f64,
     pub upload_mbps: f64,
-    pub ping_ms: f64,
-    pub jitter_ms: f64,
+    /// None = ping olculemedi (ICMP+TCP basarisiz); 0 ms ile karistirilmasin.
+    pub ping_ms: Option<f64>,
+    pub jitter_ms: Option<f64>,
     pub server: String,
     pub download_peak_mbps: f64,
     pub upload_peak_mbps: f64,
@@ -75,24 +76,28 @@ pub async fn run_speed_test(app: AppHandle, server: Option<String>) -> Result<Sp
     crate::dlog!("[speedtest] sunucu: {}", server);
 
     // ---- 2. Ping & jitter (Cloudflare DNS) ----
-    let (ping_ms, jitter_ms) = measure_ping_jitter().await;
-    crate::dlog!("[speedtest] ping: {:.1}ms / jitter: {:.1}ms", ping_ms, jitter_ms);
+    let ping = measure_ping_jitter().await;
+    crate::dlog!("[speedtest] ping/jitter: {:?}", ping);
 
     // ---- 3. Download testi ----
     crate::dlog!("[speedtest] download başlıyor...");
-    let (download_mbps, download_peak_mbps) = run_download_test(&app).await;
+    let (download_mbps, download_peak_mbps) = run_download_test(&app).await?;
     crate::dlog!("[speedtest] download bitti: {:.1} Mbps (peak {:.1})", download_mbps, download_peak_mbps);
+    // Download final (p90) degerini UI'a kilitle -> upload sonrasi rakam degismesin.
+    let _ = app.emit("speedtest:phase_done", SpeedProgress {
+        phase: "download".to_string(), mbps: round2(download_mbps), elapsed_ms: 0,
+    });
 
     // ---- 4. Upload testi ----
     crate::dlog!("[speedtest] upload başlıyor...");
-    let (upload_mbps, upload_peak_mbps) = run_upload_test(&app).await;
+    let (upload_mbps, upload_peak_mbps) = run_upload_test(&app).await?;
     crate::dlog!("[speedtest] upload bitti: {:.1} Mbps (peak {:.1})", upload_mbps, upload_peak_mbps);
 
     Ok(SpeedTestResult {
         download_mbps: round2(download_mbps),
         upload_mbps: round2(upload_mbps),
-        ping_ms: round2(ping_ms),
-        jitter_ms: round2(jitter_ms),
+        ping_ms: ping.map(|(p, _)| round2(p)),
+        jitter_ms: ping.map(|(_, j)| round2(j)),
         server,
         download_peak_mbps: round2(download_peak_mbps),
         upload_peak_mbps: round2(upload_peak_mbps),
@@ -129,11 +134,9 @@ async fn fetch_server_location() -> String {
 }
 
 /// ICMP ping ile latency + jitter (σ). Yaygın hız testi mantığı.
-async fn measure_ping_jitter() -> (f64, f64) {
-    let ip: IpAddr = match PING_TARGET.parse() {
-        Ok(i) => i,
-        Err(_) => return (0.0, 0.0),
-    };
+/// None = hic yanit alinamadi (ICMP ve TCP fallback basarisiz): 0 ms DEGIL, "olculemedi".
+async fn measure_ping_jitter() -> Option<(f64, f64)> {
+    let ip: IpAddr = PING_TARGET.parse().ok()?;
     let config = Config::builder().kind(ICMP::V4).build();
     let client = match Client::new(&config) {
         Ok(c) => c,
@@ -165,8 +168,9 @@ async fn measure_ping_jitter() -> (f64, f64) {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
+    // ICMP hic cevap vermediyse (ICMP bloklu) TCP-connect fallback'e dus (netveil yoluyla ayni)
     if latencies.is_empty() {
-        return (0.0, 0.0);
+        return tcp_ping_fallback(ip).await;
     }
 
     let avg = latencies.iter().sum::<f64>() / latencies.len() as f64;
@@ -177,10 +181,10 @@ async fn measure_ping_jitter() -> (f64, f64) {
         0.0
     };
 
-    (avg, jitter)
+    Some((avg, jitter))
 }
 
-async fn tcp_ping_fallback(ip: IpAddr) -> (f64, f64) {
+async fn tcp_ping_fallback(ip: IpAddr) -> Option<(f64, f64)> {
     use tokio::net::TcpStream;
     let mut lats = Vec::new();
     for _ in 0..PING_COUNT {
@@ -192,16 +196,16 @@ async fn tcp_ping_fallback(ip: IpAddr) -> (f64, f64) {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
     if lats.is_empty() {
-        return (0.0, 0.0);
+        return None;
     }
     let avg = lats.iter().sum::<f64>() / lats.len() as f64;
     let var = lats.iter().map(|x| (x - avg).powi(2)).sum::<f64>() / lats.len() as f64;
-    (avg, var.sqrt())
+    Some((avg, var.sqrt()))
 }
 
 /// Download — 8 paralel connection, warm-up sonrası ölçüm.
 /// Sliding window peak (en yüksek 1sn'lik throughput) da hesaplanır.
-async fn run_download_test(app: &AppHandle) -> (f64, f64) {
+async fn run_download_test(app: &AppHandle) -> Result<(f64, f64), String> {
     use futures::StreamExt;
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert("Referer", "https://speed.cloudflare.com/".parse().expect("static URL"));
@@ -213,7 +217,7 @@ async fn run_download_test(app: &AppHandle) -> (f64, f64) {
         .build()
     {
         Ok(c) => c,
-        Err(_) => return (0.0, 0.0),
+        Err(e) => return Err(e.to_string()),
     };
 
     // Atomic counter — sample'lar zamanla sliding window peak için
@@ -246,8 +250,8 @@ async fn run_download_test(app: &AppHandle) -> (f64, f64) {
                                     got_bytes = true;
                                     counter.fetch_add(bytes.len() as u64, Ordering::Relaxed);
                                 }
-                                Err(e) => {
-                                    crate::dlog!("[DL] stream hata: {:?}", e);
+                                Err(_e) => {
+                                    crate::dlog!("[DL] stream hata: {:?}", _e);
                                     break;
                                 }
                             }
@@ -257,8 +261,8 @@ async fn run_download_test(app: &AppHandle) -> (f64, f64) {
                             crate::dlog!("[DL] hic byte gelmedi");
                         }
                     }
-                    Err(e) => {
-                        crate::dlog!("[DL] baglanti hatasi: {:?}", e);
+                    Err(_e) => {
+                        crate::dlog!("[DL] baglanti hatasi: {:?}", _e);
                         tokio::time::sleep(Duration::from_millis(100)).await;
                     }
                 }
@@ -307,9 +311,9 @@ async fn run_download_test(app: &AppHandle) -> (f64, f64) {
         samples
     });
 
-    for h in handles {
-        let _ = h.await;
-    }
+    // Grace YALNIZ faz penceresi (deadline) bittikten sonra: aktif workerlar erken abort edilmez;
+    // 22sn HTTP timeout'una kadar asili kalanlar deadline + grace'te abort edilir.
+    crate::throttle_baseline::join_after_deadline(deadline, handles, Duration::from_secs(crate::throttle_baseline::JOIN_GRACE_SECS)).await;
     let samples = sampler.await.unwrap_or_default();
 
     // Warm-up sonrası ortalama
@@ -329,17 +333,19 @@ async fn run_download_test(app: &AppHandle) -> (f64, f64) {
     // p90 > peak'in %50'si ise p90 kullan, değilse (warmup uzadiysa) peak'in %90'i
     let result_mbps = if p90_mbps > peak_mbps * 0.5 { p90_mbps } else { peak_mbps * 0.9 };
 
-    (result_mbps, peak_mbps)
+    // Hic gecerli byte akmadiysa (tum istekler HTTP hata/baglanti hatasi) 0 Mbps "sonuc" degil hata.
+    crate::throttle_baseline::check_phase_result(result_mbps, false, "download")?;
+    Ok((result_mbps, peak_mbps))
 }
 
 /// Upload — 4 paralel POST, chunk'lı stream.
-async fn run_upload_test(app: &AppHandle) -> (f64, f64) {
+async fn run_upload_test(app: &AppHandle) -> Result<(f64, f64), String> {
     let client = match reqwest::Client::builder()
         .timeout(Duration::from_secs(UL_DURATION_SECS + 10))
         .build()
     {
         Ok(c) => c,
-        Err(_) => return (0.0, 0.0),
+        Err(e) => return Err(e.to_string()),
     };
 
     // 256KB chunk — her POST kısa sürer, counter düzenli artar,
@@ -360,8 +366,13 @@ async fn run_upload_test(app: &AppHandle) -> (f64, f64) {
                 let body = (*chunk).clone();
                 let len = body.len() as u64;
                 match c.post(UL_URL).body(body).send().await {
-                    Ok(_) => {
+                    // Yalniz basarili (2xx) yanit sayilir: 4xx/5xx ile reddedilen upload olcume girmez.
+                    Ok(resp) if resp.status().is_success() => {
                         counter.fetch_add(len, Ordering::Relaxed);
+                    }
+                    Ok(_rejected) => {
+                        crate::dlog!("[UL] HTTP hata: {}", _rejected.status());
+                        tokio::time::sleep(Duration::from_millis(100)).await;
                     }
                     Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
                 }
@@ -405,9 +416,7 @@ async fn run_upload_test(app: &AppHandle) -> (f64, f64) {
         samples
     });
 
-    for h in handles {
-        let _ = h.await;
-    }
+    crate::throttle_baseline::join_after_deadline(deadline, handles, Duration::from_secs(crate::throttle_baseline::JOIN_GRACE_SECS)).await;
     let samples = sampler.await.unwrap_or_default();
 
     // Warmup dönemindeki sample'ları çıkar
@@ -421,7 +430,8 @@ async fn run_upload_test(app: &AppHandle) -> (f64, f64) {
     let p90_mbps    = sliding_p90_mbps(&post_warmup_samples);
     let result_mbps = if p90_mbps > peak_mbps * 0.5 { p90_mbps } else { peak_mbps * 0.9 };
 
-    (result_mbps, peak_mbps)
+    crate::throttle_baseline::check_phase_result(result_mbps, false, "upload")?;
+    Ok((result_mbps, peak_mbps))
 }
 
 /// Sliding window içinde en yüksek throughput'u (Mbps) bul.
@@ -496,10 +506,12 @@ async fn run_speed_test_netveil(app: AppHandle) -> Result<SpeedTestResult, Strin
 
     crate::dlog!("[speedtest/netveil] basliyor");
 
-    let (ping_ms, jitter_ms) = measure_ping_jitter_netveil().await;
+    let ping = measure_ping_jitter_netveil().await;
+    // 429 = sunucu IP-kilidi (baska kullanici test ediyor): dusuk/sifir hiz degil SERVER_BUSY.
+    let busy = Arc::new(std::sync::atomic::AtomicBool::new(false));
 
     // throttle_baseline ile identik parametreler
-    const DL_URL:    &str   = "https://netveil.net/dl";
+    const DL_URL:    &str   = "https://api.netveil.net/dl";
     const DL_BYTES:  u64    = 524_288_000;
     const DL_PAR:    usize  = 8;
     const UL_PAR:    usize  = 6;
@@ -521,12 +533,19 @@ async fn run_speed_test_netveil(app: AppHandle) -> Result<SpeedTestResult, Strin
     let mut dl_handles = Vec::new();
     for _ in 0..DL_PAR {
         let c = dl_counter.clone(); let s = dl_stop.clone(); let cl = client.clone();
+        let b = busy.clone();
         let url = format!("{}?bytes={}", DL_URL, DL_BYTES);
         dl_handles.push(tokio::spawn(async move {
             while !s.load(Ordering::Relaxed) {
                 let resp = match cl.get(&url).send().await {
                     Ok(r) if r.status().is_success() => r,
-                    _ => { if s.load(Ordering::Relaxed) { break; }
+                    other => {
+                           if let Ok(r) = &other {
+                               if r.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                                   b.store(true, Ordering::Relaxed);
+                               }
+                           }
+                           if s.load(Ordering::Relaxed) { break; }
                            tokio::time::sleep(Duration::from_millis(50)).await; continue; }
                 };
                 let mut stream = resp.bytes_stream();
@@ -546,40 +565,60 @@ async fn run_speed_test_netveil(app: AppHandle) -> Result<SpeedTestResult, Strin
     let (dl_result, dl_peak) = netveil_measure_loop(
         &app, dl_counter.clone(), dl_stop.clone(), dl_start, "download", WARMUP, TOTAL, EMIT_MS, WINDOW
     ).await;
-    for h in dl_handles { let _ = h.await; }
+    crate::throttle_baseline::join_bounded(dl_handles, Duration::from_secs(crate::throttle_baseline::JOIN_GRACE_SECS)).await;
+    crate::throttle_baseline::check_phase_result(dl_result, busy.load(Ordering::Relaxed), "download")?;
+    // Download final (p90) degerini UI'a kilitle -> upload sonrasi rakam degismesin.
+    let _ = app.emit("speedtest:phase_done", SpeedProgress {
+        phase: "download".to_string(), mbps: round2(dl_result), elapsed_ms: 0,
+    });
 
     // ---- Upload ----
     let ul_counter = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let ul_stop    = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let ul_start   = Instant::now();
+    let ul_tally   = Arc::new(crate::throttle_baseline::UploadTally::new(UL_PAR));
 
     let mut ul_handles = Vec::new();
-    for _ in 0..UL_PAR {
+    for idx in 0..UL_PAR {
         let c = ul_counter.clone(); let s = ul_stop.clone(); let cl = client.clone();
+        let tally = ul_tally.clone();
         ul_handles.push(tokio::spawn(async move {
-            let cs = c.clone(); let ss = s.clone();
+            let cs = c.clone(); let ss = s.clone(); let ts = tally.clone();
             let stream = futures::stream::unfold((), move |_| {
-                let c2 = cs.clone(); let s2 = ss.clone();
+                let c2 = cs.clone(); let s2 = ss.clone(); let t2 = ts.clone();
                 async move {
                     if s2.load(Ordering::Relaxed) { return None; }
                     tokio::task::yield_now().await;
                     if s2.load(Ordering::Relaxed) { return None; }
                     let chunk = vec![0xAAu8; 16_384];
                     c2.fetch_add(16_384, Ordering::Relaxed);
+                    t2.add_bytes(idx, 16_384);
                     Some((Ok::<_, std::convert::Infallible>(chunk), ()))
                 }
             });
-            let _ = cl.post("https://netveil.net/ul")
+            let resp = cl.post("https://api.netveil.net/ul")
                 .header("content-type", "application/octet-stream")
                 .body(reqwest::Body::wrap_stream(stream))
+                // Client timeout'u (60s) toplam istegi keser; adaptif onay beklemesine yer ac.
+                .timeout(Duration::from_secs_f64(TOTAL) + Duration::from_secs(crate::throttle_baseline::UPLOAD_CONFIRM_MAX_SECS + 5))
                 .send().await;
+            // Byte'lar govde uretilirken sayilir; onemli byte ureten bir worker sunucudan 2xx
+            // almadiysa (429/4xx/5xx/baglanti hatasi/yanit yok) olcum gecerli degildir.
+            // + NetVeil /ul govdesi {"received": N}: N >= %95 uretilen byte degilse onaysiz.
+            tally.record_result(idx, crate::throttle_baseline::upload_response(resp, true).await);
         }));
     }
 
     let (ul_result, ul_peak) = netveil_measure_loop(
         &app, ul_counter.clone(), ul_stop.clone(), ul_start, "upload", WARMUP, TOTAL, EMIT_MS, WINDOW
     ).await;
-    for h in ul_handles { let _ = h.await; }
+    // Sunucu yaniti govde bitince (stop) gelir; kuyruk bosalana kadar olcum penceresinden SONRA
+    // sinirli bekleme (olculen byte/sure degismez, istekler cozulunce erken biter).
+    // Bekleme suresi fazin kendi olculen hizina gore adaptif (yavas uplink -> daha uzun, <=60s).
+    let ul_grace = crate::throttle_baseline::upload_confirm_grace(ul_counter.load(Ordering::Relaxed), ul_result, TOTAL);
+    crate::throttle_baseline::join_uploads(ul_handles, &ul_tally, ul_grace).await;
+    ul_tally.verdict()?;
+    crate::throttle_baseline::check_phase_result(ul_result, false, "upload")?;
 
     crate::dlog!("[speedtest/netveil] DL: {:.1} (peak {:.1}) UL: {:.1} (peak {:.1})",
         dl_result, dl_peak, ul_result, ul_peak);
@@ -587,8 +626,8 @@ async fn run_speed_test_netveil(app: AppHandle) -> Result<SpeedTestResult, Strin
     Ok(SpeedTestResult {
         download_mbps:      round2(dl_result),
         upload_mbps:        round2(ul_result),
-        ping_ms:            round2(ping_ms),
-        jitter_ms:          round2(jitter_ms),
+        ping_ms:            ping.map(|(p, _)| round2(p)),
+        jitter_ms:          ping.map(|(_, j)| round2(j)),
         server:             "netveil.net · Frankfurt".to_string(),
         download_peak_mbps: round2(dl_peak),
         upload_peak_mbps:   round2(ul_peak),
@@ -674,14 +713,14 @@ async fn netveil_measure_loop(
 /// netveil.net RTT/jitter olcumu — GERCEK ICMP (CF yoluyla tutarli).
 /// Eski HTTP GET yontemi TLS+HTTP overhead iceriyordu (gercek RTT degil).
 /// netveil.net IP'ye resolve edilir, ICMP ping atilir; ICMP yoksa TCP-connect(443) fallback.
-async fn measure_ping_jitter_netveil() -> (f64, f64) {
+async fn measure_ping_jitter_netveil() -> Option<(f64, f64)> {
     // netveil.net -> IPv4 (ICMP V4 icin; CF yolu sabit IP kullaniyor)
-    let ip: IpAddr = match tokio::net::lookup_host("netveil.net:443").await {
+    let ip: IpAddr = match tokio::net::lookup_host("api.netveil.net:443").await {
         Ok(mut addrs) => match addrs.find(|a| a.is_ipv4()) {
             Some(a) => a.ip(),
-            None => return (0.0, 0.0),
+            None => return None,
         },
-        Err(_) => return (0.0, 0.0),
+        Err(_) => return None,
     };
 
     let config = Config::builder().kind(ICMP::V4).build();
@@ -722,7 +761,7 @@ async fn measure_ping_jitter_netveil() -> (f64, f64) {
 
     let avg = latencies.iter().sum::<f64>() / latencies.len() as f64;
     let var = latencies.iter().map(|x| (x - avg).powi(2)).sum::<f64>() / latencies.len() as f64;
-    (avg, var.sqrt())
+    Some((avg, var.sqrt()))
 }
 
 // rand_id -> crate::rand_id() kullanılıyor

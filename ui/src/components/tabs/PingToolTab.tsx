@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import { t } from "../../lib/i18n";
 import { useLang } from "../../lib/useLang";
+import { filterRemotePresets, type PresetTarget } from "../../lib/remotePresets";
 
 // Ortak istatistik alanlari (hem reply hem done payload'inda var).
 interface PingStats {
@@ -29,8 +30,6 @@ interface PingDone extends PingStats {
 
 type PingState = "idle" | "running" | "done" | "error";
 type IpVersion = "auto" | "4" | "6";
-
-interface PresetTarget { label: string; host: string; ip_support?: "4" | "6" | "both"; }
 
 const FALLBACK_PRESETS: PresetTarget[] = [
   { label: "Cloudflare DNS",   host: "1.1.1.1",                ip_support: "4" },
@@ -126,9 +125,12 @@ export function PingToolTab() {
   };
 
   const loadPresets = useCallback(() => {
-    fetch("https://netveil.net/traceroute-presets")
-      .then(r => r.json())
-      .then((data: PresetTarget[]) => { if (data.length > 0) setPresets(data); })
+    fetch("https://api.netveil.net/traceroute-presets")
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((data: unknown) => {
+        const valid = filterRemotePresets(data);
+        setPresets(valid.length > 0 ? valid : FALLBACK_PRESETS);
+      })
       .catch(() => {});
   }, []);
 

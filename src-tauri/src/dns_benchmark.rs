@@ -17,7 +17,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::time::timeout;
 
-const DNS_PROVIDERS_URL: &str = "https://netveil.net/dns-providers";
+const DNS_PROVIDERS_URL: &str = "https://api.netveil.net/dns-providers";
 static DNS_PROVIDERS: OnceLock<Vec<DnsProviderDef>> = OnceLock::new();
 
 /// Uygulama açılışında çağrılır — sunucudan provider listesini çek.
@@ -36,7 +36,18 @@ async fn fetch_dns_providers_remote() -> Vec<DnsProviderDef> {
         else { return dns_providers_fallback(); };
     let Ok(resp) = client.get(DNS_PROVIDERS_URL).send().await
         else { return dns_providers_fallback(); };
-    resp.json::<Vec<DnsProviderDef>>().await.unwrap_or_else(|_| dns_providers_fallback())
+    let Ok(raw) = resp.json::<Vec<serde_json::Value>>().await
+        else { return dns_providers_fallback(); };
+    let list = crate::remote_list::filter_valid(raw, valid_dns_provider);
+    if list.is_empty() { dns_providers_fallback() } else { list }
+}
+
+/// Sunucu girişi: ip halka açık literal IP olmalı; DoH host'u boş (DoH yok) ya da geçerli host,
+/// doh_path geçerli URL yolu olmalı.
+fn valid_dns_provider(p: &DnsProviderDef) -> bool {
+    use crate::remote_list::{is_public_ip, is_valid_target_host, is_valid_url_path};
+    p.ip.parse::<IpAddr>().is_ok_and(is_public_ip)
+        && (p.doh_host.is_empty() || (is_valid_target_host(&p.doh_host) && is_valid_url_path(&p.doh_path)))
 }
 
 fn dns_providers_fallback() -> Vec<DnsProviderDef> {
@@ -91,6 +102,24 @@ fn build_query(tx_id: u16) -> Vec<u8> {
 // Eski nanosecond-tabanlı yöntem zayıf rastgelelikti (off-path tahmin riski).
 fn next_tx_id() -> u16 {
     crate::rand_id()
+}
+
+/// DNS yanit header'ini + question echo'sunu dogrular. Saf fonksiyon - test edilebilir.
+/// Gecerli = QR biti set, id eslesiyor, soru bolumu bizim sorgunun aynisi (buyuk/kucuk harf
+/// duyarsiz) ve RCODE NOERROR(0) veya NXDOMAIN(3). Rastgele *.netveil-bench.invalid adlari icin
+/// BEKLENEN cevap NXDOMAIN'dir; SERVFAIL/REFUSED/bozuk/kisa yanit basarisizdir.
+fn is_valid_dns_response(query: &[u8], resp: &[u8], expected_id: u16) -> bool {
+    if resp.len() < 12 || query.len() < 12 { return false; }
+    if u16::from_be_bytes([resp[0], resp[1]]) != expected_id { return false; }
+    if resp[2] & 0x80 == 0 { return false; }                 // QR=1 (yanit)
+    let rcode = resp[3] & 0x0F;
+    if rcode != 0 && rcode != 3 { return false; }            // NOERROR | NXDOMAIN
+    if u16::from_be_bytes([resp[4], resp[5]]) < 1 { return false; } // QDCOUNT >= 1
+    let question = &query[12..];
+    match resp.get(12..12 + question.len()) {
+        Some(echo) => echo.eq_ignore_ascii_case(question),
+        None => false,
+    }
 }
 
 // ─── Sabitler ────────────────────────────────────────────────────────────────
@@ -183,14 +212,9 @@ async fn probe_udp(ip: &str) -> DnsProbeResult {
 
         let mut buf = [0u8; 512];
         match timeout(UDP_TIMEOUT, sock.recv(&mut buf)).await {
-            Ok(Ok(n)) if n >= 2 => {
-                // Transaction ID doğrulaması — bizim sorgumuza cevap mı?
-                let resp_id = u16::from_be_bytes([buf[0], buf[1]]);
-                if resp_id == tx_id {
-                    samples.push(t.elapsed().as_secs_f64() * 1000.0);
-                } else {
-                    lost += 1; // farklı TX ID — başka bir sorgunun cevabı
-                }
+            // Header (QR/id/RCODE) + question echo doğrulaması; NXDOMAIN beklenen/başarılı cevap.
+            Ok(Ok(n)) if is_valid_dns_response(&query, &buf[..n], tx_id) => {
+                samples.push(t.elapsed().as_secs_f64() * 1000.0);
             }
             _ => lost += 1,
         }
@@ -244,9 +268,8 @@ async fn probe_dot(ip: &str) -> DnsProbeResult {
         let mut resp = vec![0u8; resp_len];
         match timeout(DOT_TIMEOUT, tls.read_exact(&mut resp)).await {
             Ok(Ok(_)) => {
-                // TX ID doğrulaması
-                let resp_id = u16::from_be_bytes([resp[0], resp[1]]);
-                if resp_id == tx_id {
+                // Header (QR/id/RCODE) + question echo doğrulaması; NXDOMAIN beklenen/başarılı cevap.
+                if is_valid_dns_response(&query, &resp, tx_id) {
                     samples.push(t.elapsed().as_secs_f64() * 1000.0);
                 } else {
                     lost += 1;
@@ -289,22 +312,25 @@ async fn probe_doh(doh_host: &str, doh_path: &str) -> DnsProbeResult {
     let mut lost = 0usize;
 
     for _ in 0..QUERY_COUNT {
-        let tx_id = next_tx_id();
+        // RFC 8484 §4.1: DoH istemcisi DNS ID=0 kullanmalı (cache dostu); cevap da aynı ID'yi taşır.
+        let tx_id: u16 = 0;
         let query = build_query(tx_id); // her sorgu farklı random subdomain → cache bypass
         let t = Instant::now();
         let res = client.post(&url)
             .header("Content-Type", "application/dns-message")
             .header("Accept", "application/dns-message")
-            .body(query)
+            .body(query.clone())
             .send()
             .await;
 
         match res {
-            Ok(r) if r.status().is_success() => {
-                if r.bytes().await.is_ok() {
-                    samples.push(t.elapsed().as_secs_f64() * 1000.0);
-                } else {
-                    lost += 1;
+            Ok(r) if r.status().is_success() && is_dns_message_content_type(&r) => {
+                // Gövde gerçek bir DNS cevabı olmalı (HTTP 200 + rastgele gövde başarı sayılmaz).
+                match r.bytes().await {
+                    Ok(body) if is_valid_dns_response(&query, &body, tx_id) => {
+                        samples.push(t.elapsed().as_secs_f64() * 1000.0);
+                    }
+                    _ => lost += 1,
                 }
             }
             _ => lost += 1,
@@ -313,6 +339,14 @@ async fn probe_doh(doh_host: &str, doh_path: &str) -> DnsProbeResult {
     }
 
     build_result(samples, lost)
+}
+
+/// DoH cevabının Content-Type'ı application/dns-message mı (parametreler/büyük-küçük harf yok sayılır).
+fn is_dns_message_content_type(r: &reqwest::Response) -> bool {
+    r.headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|ct| ct.to_ascii_lowercase().starts_with("application/dns-message"))
 }
 
 // ─── İstatistik yardımcıları ──────────────────────────────────────────────────
@@ -487,7 +521,88 @@ pub async fn run_dns_benchmark(app: AppHandle) -> Result<DnsBenchmarkResult, Str
 
 #[cfg(test)]
 mod tests {
-    use super::build_query;
+    use super::{build_query, dns_providers_fallback, is_valid_dns_response, valid_dns_provider, DnsProviderDef};
+
+    fn prov(ip: &str, doh_host: &str, doh_path: &str) -> DnsProviderDef {
+        DnsProviderDef { name: "t".into(), ip: ip.into(), doh_host: doh_host.into(), doh_path: doh_path.into() }
+    }
+
+    #[test]
+    fn fallback_providerlar_dogrulamadan_gecer() {
+        for p in dns_providers_fallback() {
+            assert!(valid_dns_provider(&p), "{}", p.name);
+        }
+    }
+
+    #[test]
+    fn provider_dogrulama_gecersizleri_reddeder() {
+        assert!(valid_dns_provider(&prov("9.9.9.9", "dns.quad9.net", "/dns-query")));
+        assert!(valid_dns_provider(&prov("2606:4700:4700::1111", "", "")));
+        assert!(!valid_dns_provider(&prov("192.168.1.1", "dns.example.com", "/dns-query")));
+        assert!(!valid_dns_provider(&prov("127.0.0.1", "", "")));
+        assert!(!valid_dns_provider(&prov("::ffff:10.0.0.1", "", "")));
+        assert!(!valid_dns_provider(&prov("fe80::1", "", "")));
+        assert!(!valid_dns_provider(&prov("dns.google", "dns.google", "/dns-query")));
+        assert!(!valid_dns_provider(&prov("8.8.8.8", "localhost", "/dns-query")));
+        assert!(!valid_dns_provider(&prov("8.8.8.8", "10.0.0.1", "/dns-query")));
+        assert!(!valid_dns_provider(&prov("8.8.8.8", "dns.google", "/../x")));
+        assert!(!valid_dns_provider(&prov("8.8.8.8", "dns.google", "dns-query")));
+        assert!(!valid_dns_provider(&prov("8.8.8.8", "evil.com/x?", "/dns-query")));
+    }
+
+    /// Sorgudan gecerli bir cevap uret: ayni id + question, QR=1, verilen RCODE.
+    fn make_response(query: &[u8], id: u16, qr: bool, rcode: u8) -> Vec<u8> {
+        let mut r = query.to_vec();
+        r[0] = (id >> 8) as u8;
+        r[1] = (id & 0xFF) as u8;
+        r[2] = if qr { 0x81 } else { 0x01 };
+        r[3] = 0x80 | (rcode & 0x0F);
+        r
+    }
+
+    #[test]
+    fn dns_cevap_nxdomain_ve_noerror_basarili() {
+        let q = build_query(0x1234);
+        // .invalid adlari icin beklenen cevap NXDOMAIN (3) -> basari
+        assert!(is_valid_dns_response(&q, &make_response(&q, 0x1234, true, 3), 0x1234));
+        assert!(is_valid_dns_response(&q, &make_response(&q, 0x1234, true, 0), 0x1234));
+    }
+
+    #[test]
+    fn dns_cevap_servfail_refused_basarisiz() {
+        let q = build_query(0x1234);
+        assert!(!is_valid_dns_response(&q, &make_response(&q, 0x1234, true, 2), 0x1234)); // SERVFAIL
+        assert!(!is_valid_dns_response(&q, &make_response(&q, 0x1234, true, 5), 0x1234)); // REFUSED
+    }
+
+    #[test]
+    fn dns_cevap_qr_id_question_dogrulanir() {
+        let q = build_query(0x1234);
+        // QR=0 (sorgu geri yansidi) -> gecersiz
+        assert!(!is_valid_dns_response(&q, &make_response(&q, 0x1234, false, 3), 0x1234));
+        // yanlis id
+        assert!(!is_valid_dns_response(&q, &make_response(&q, 0x9999, true, 3), 0x1234));
+        // farkli question (baska bir sorgunun cevabi)
+        let mut resp = make_response(&q, 0x1234, true, 3);
+        resp[13] ^= 0x01; // ilk label'in ilk karakterini boz
+        assert!(!is_valid_dns_response(&q, &resp, 0x1234));
+    }
+
+    #[test]
+    fn dns_cevap_kisa_veya_bozuk_basarisiz() {
+        let q = build_query(0x1234);
+        assert!(!is_valid_dns_response(&q, &[], 0x1234));
+        assert!(!is_valid_dns_response(&q, &[0u8; 11], 0x1234));
+        // header var ama question yok/kesik
+        let full = make_response(&q, 0x1234, true, 3);
+        assert!(!is_valid_dns_response(&q, &full[..full.len() - 3], 0x1234));
+        // QDCOUNT=0
+        let mut z = full.clone();
+        z[4] = 0; z[5] = 0;
+        assert!(!is_valid_dns_response(&q, &z, 0x1234));
+        // rastgele HTTP-200 govdesi (DoH sahte cevap)
+        assert!(!is_valid_dns_response(&q, b"<html>not dns at all, just some body</html>", 0x1234));
+    }
 
     #[test]
     fn build_query_tx_id_big_endian() {

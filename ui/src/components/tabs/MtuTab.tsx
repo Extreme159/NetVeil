@@ -115,11 +115,8 @@ export function MtuTab({ results }: { results: TestResults }) {
       {result && (
         <>
           {/* Ozet/yorum karti */}
-          <div className="card" style={{ display: "flex", alignItems: "center", gap: 18, borderColor: `${mtuColor(result.primary_mtu)}55` }}>
-            <div style={{ flexShrink: 0, width: 76, height: 56, borderRadius: 14, display: "grid", placeItems: "center", color: mtuColor(result.primary_mtu), background: `${mtuColor(result.primary_mtu)}1a`, border: `1.5px solid ${mtuColor(result.primary_mtu)}55` }}>
-              <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800 }}>{result.primary_mtu ?? "—"}</span>
-            </div>
-            <p style={{ flex: 1, margin: 0, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.55 }}>{tk(result.detail_key)}</p>
+          <div className="card">
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.55 }}>{tk(result.detail_key)}</p>
           </div>
 
           {/* Hedef tablosu */}

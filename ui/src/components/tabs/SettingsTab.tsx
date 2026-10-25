@@ -136,6 +136,13 @@ export function SettingsTab({ updateInfo, licenseStatus, setLicenseStatus }: {
       </div>
 
       {/* İleride başka ayar grupları buraya kart olarak eklenir */}
+
+      {/* Ticari marka bildirimi */}
+      <div className="card" style={{ padding: "14px 18px" }}>
+        <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6, opacity: 0.75 }}>
+          {t("trademark_full")}
+        </p>
+      </div>
     </div>
   );
 }

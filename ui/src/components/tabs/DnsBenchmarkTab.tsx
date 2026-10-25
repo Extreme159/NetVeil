@@ -7,6 +7,8 @@ import { TestIntro } from "../TestIntro";
 import { GradeCard } from "../GradeCard";
 import { t } from "../../lib/i18n";
 import { useLang } from "../../lib/useLang";
+import { useTestGuard } from "../testGuard";
+import { TestBusyHint } from "../TestBusyHint";
 
 type IcoComp = typeof Icon[keyof typeof Icon];
 import { gradeColor } from "../../lib/helpers";
@@ -409,6 +411,7 @@ export function DnsBenchmarkTab() {
   const [active,    setActive]    = useState<{ provider: string; protocol: string } | null>(null);
   const [doneCount, setDoneCount] = useState(0);
   const [verdict,   setVerdict]   = useState<ModuleVerdict | null>(null);
+  const guard = useTestGuard();
 
   // 7 provider × 3 protokol = 21 toplam probe
   const TOTAL_PROBES = 21;
@@ -442,6 +445,7 @@ export function DnsBenchmarkTab() {
 
   const run = async () => {
     if (isRunning) return;
+    if (!guard.acquire("dns-benchmark")) return;
     setIsRunning(true);
     setResult(null);
     setError(null);
@@ -455,13 +459,15 @@ export function DnsBenchmarkTab() {
     } finally {
       setIsRunning(false);
       setActive(null);
+      guard.release("dns-benchmark");
     }
   };
 
   // Bos durum (henuz sonuc yok, calismyor): ortak pat1 kalibi.
-  if (!result && !isRunning) {
+  if (!result && !isRunning && !error) {
     return (
       <TestIntro
+        guarded
         iconKey="Dns"
         title={t("tab_dns_benchmark_title")}
         description={t("dns_intro_desc")}
@@ -480,15 +486,16 @@ export function DnsBenchmarkTab() {
         <div style={{ flex: 1, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
           {t("dns_header_desc")}
         </div>
-        <button className="btn" onClick={run} disabled={isRunning} type="button" style={{ flexShrink: 0 }}>
+        <button className="btn" onClick={run} disabled={isRunning || guard.activeTest !== null} type="button" style={{ flexShrink: 0 }}>
           {isRunning ? t("btn_running") : t("dns_btn_run")}
         </button>
       </div>
+      <TestBusyHint ownId="dns-benchmark" />
 
       {/* Hata */}
       {error && (
         <div className="card" style={{ padding: "12px 16px", background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.3)", color: "#fca5a5", fontSize: 13 }}>
-          <strong>Hata:</strong> {error}
+          <strong>{t("dns_error_label")}</strong> {error}
         </div>
       )}
 

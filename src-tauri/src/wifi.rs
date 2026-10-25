@@ -39,7 +39,7 @@ pub struct WifiInfo {
 #[tauri::command]
 pub async fn get_wifi_info() -> Result<WifiInfo, String> {
     // netsh wlan show interfaces ile Wi-Fi bilgilerini al
-    let output = Command::new("netsh")
+    let output = Command::new(crate::win_system32("netsh.exe"))
         .args(["wlan", "show", "interfaces"])
         .no_window()
         .output()
@@ -98,7 +98,18 @@ pub async fn get_wifi_info() -> Result<WifiInfo, String> {
 
     let channel = channel_str.trim().parse::<u32>().unwrap_or(0);
 
-    let band = if channel > 14 {
+    // Band: kanal numarasi 6 GHz ile 2.4/5 GHz arasinda belirsiz; once WLAN API'den gelen
+    // gercek merkez frekansina bak, yoksa kanal numarasina dus.
+    let freq_mhz = {
+        let b = bssid.clone();
+        tokio::task::spawn_blocking(move || connected_center_freq_mhz(&b))
+            .await
+            .ok()
+            .flatten()
+    };
+    let band = if let Some(b) = freq_mhz.and_then(band_from_frequency_mhz) {
+        b.to_string()
+    } else if channel > 14 {
         "5 GHz".to_string()
     } else if channel > 0 {
         "2.4 GHz".to_string()
@@ -125,6 +136,92 @@ pub async fn get_wifi_info() -> Result<WifiInfo, String> {
         cipher,
         connected,
     })
+}
+
+/// Merkez frekansindan (MHz) band: <3000 → 2.4, <5925 → 5, >=5925 → 6 GHz.
+fn band_from_frequency_mhz(mhz: u32) -> Option<&'static str> {
+    match mhz {
+        0 => None,
+        1..=2999 => Some("2.4 GHz"),
+        3000..=5924 => Some("5 GHz"),
+        _ => Some("6 GHz"),
+    }
+}
+
+/// Bagli BSSID'nin merkez frekansi (MHz) — WLAN API'nin onbellekteki BSS listesinden
+/// (yeni tarama baslatmaz). Bulunamazsa None.
+#[cfg(target_os = "windows")]
+fn connected_center_freq_mhz(bssid: &str) -> Option<u32> {
+    use windows::Win32::{
+        Foundation::HANDLE,
+        NetworkManagement::WiFi::{
+            dot11_BSS_type_any, WlanCloseHandle, WlanEnumInterfaces, WlanFreeMemory,
+            WlanGetNetworkBssList, WlanOpenHandle, WLAN_BSS_LIST, WLAN_INTERFACE_INFO_LIST,
+        },
+    };
+    let want: Vec<u8> = bssid
+        .trim()
+        .split(|c| c == ':' || c == '-')
+        .filter_map(|p| u8::from_str_radix(p, 16).ok())
+        .collect();
+    if want.len() != 6 {
+        return None;
+    }
+
+    let mut handle = HANDLE::default();
+    let mut negotiated = 0u32;
+    if unsafe { WlanOpenHandle(2, None, &mut negotiated, &mut handle) } != 0 {
+        return None;
+    }
+    let mut result = None;
+    let mut iface_list: *mut WLAN_INTERFACE_INFO_LIST = std::ptr::null_mut();
+    if unsafe { WlanEnumInterfaces(handle, None, &mut iface_list) } == 0 && !iface_list.is_null() {
+        let interfaces = unsafe {
+            std::slice::from_raw_parts(
+                (*iface_list).InterfaceInfo.as_ptr(),
+                (*iface_list).dwNumberOfItems as usize,
+            )
+        };
+        'ifaces: for iface in interfaces {
+            let mut bss_list: *mut WLAN_BSS_LIST = std::ptr::null_mut();
+            let ret = unsafe {
+                WlanGetNetworkBssList(
+                    handle,
+                    &iface.InterfaceGuid,
+                    None,
+                    dot11_BSS_type_any,
+                    false,
+                    None,
+                    &mut bss_list,
+                )
+            };
+            if ret != 0 || bss_list.is_null() {
+                continue;
+            }
+            let entries = unsafe {
+                std::slice::from_raw_parts(
+                    (*bss_list).wlanBssEntries.as_ptr(),
+                    (*bss_list).dwNumberOfItems as usize,
+                )
+            };
+            for e in entries {
+                if e.dot11Bssid[..] == want[..] {
+                    result = Some(e.ulChCenterFrequency / 1000);
+                    unsafe { WlanFreeMemory(bss_list as *mut _) };
+                    break 'ifaces;
+                }
+            }
+            unsafe { WlanFreeMemory(bss_list as *mut _) };
+        }
+        unsafe { WlanFreeMemory(iface_list as *mut _) };
+    }
+    unsafe { WlanCloseHandle(handle, None) };
+    result
+}
+
+#[cfg(not(target_os = "windows"))]
+fn connected_center_freq_mhz(_bssid: &str) -> Option<u32> {
+    None
 }
 
 /// Satır label'i key ile BITER mi diye bakar (tam eşleşme)
@@ -193,5 +290,22 @@ fn signal_quality(percent: u32) -> String {
         40..=59 => "Orta".to_string(),
         20..=39 => "Zayıf".to_string(),
         _ => "Çok Zayıf".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::band_from_frequency_mhz;
+
+    #[test]
+    fn frekanstan_band() {
+        assert_eq!(band_from_frequency_mhz(0), None);
+        assert_eq!(band_from_frequency_mhz(2412), Some("2.4 GHz"));
+        assert_eq!(band_from_frequency_mhz(2484), Some("2.4 GHz"));
+        assert_eq!(band_from_frequency_mhz(5180), Some("5 GHz"));
+        assert_eq!(band_from_frequency_mhz(5885), Some("5 GHz"));
+        assert_eq!(band_from_frequency_mhz(5925), Some("6 GHz"));
+        assert_eq!(band_from_frequency_mhz(5955), Some("6 GHz"));
+        assert_eq!(band_from_frequency_mhz(7115), Some("6 GHz"));
     }
 }

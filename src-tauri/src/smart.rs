@@ -44,12 +44,15 @@ pub struct SmartDiagnosis {
 /// FPS oyuncu skoru — sıkı gecikme/jitter eşikleri, 5 bileşen.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FpsScore {
-    pub latency: u32,
-    pub jitter: u32,
-    pub packet_loss: u32,
-    pub bufferbloat: u32,
+    // None = bu testte olculemedi (ping/bufferbloat verisi yok); toplam agirliklarindan cikarilir.
+    pub latency: Option<u32>,
+    pub jitter: Option<u32>,
+    pub packet_loss: Option<u32>,
+    pub bufferbloat: Option<u32>,
     pub wifi: u32,
-    pub total: u32,
+    /// None = yetersiz veri: ag-kalitesi olcumu (gecikme/jitter/kayip/bufferbloat) yok;
+    /// Wi-Fi tek basina not uretmez. Bu durumda grade "-".
+    pub total: Option<u32>,
     pub grade: String,
 }
 
@@ -65,7 +68,8 @@ pub struct FpsDiagnosis {
 /// Modullerin kombinasyonundan turetilir (deterministik).
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Synthesis {
-    pub score: u32,
+    /// None = yetersiz veri (grade "-", headline `synth_insufficient_data`).
+    pub score: Option<u32>,
     pub grade: String,
     pub headline_key: String,   // i18n: tek cumle buyuk resim ozeti
     pub insights: Vec<Insight>, // pozitif/notr/negatif sentez maddeleri
@@ -97,20 +101,23 @@ pub struct Insight {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GamingScore {
-    pub latency: u32,
-    pub jitter: u32,
-    pub bufferbloat: u32,
-    pub packet_loss: u32,
-    pub total: u32,
+    // None = olculemedi (ping/bufferbloat verisi yok); toplam agirliklarindan cikarilir.
+    pub latency: Option<u32>,
+    pub jitter: Option<u32>,
+    pub bufferbloat: Option<u32>,
+    pub packet_loss: Option<u32>,
+    /// None = hicbir bilesen olculemedi (grade "-").
+    pub total: Option<u32>,
     pub grade: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GeneralScore {
-    pub latency: u32,
-    pub jitter: u32,
-    pub bufferbloat: u32,
-    pub packet_loss: u32,
+    // latency/jitter/bufferbloat/packet_loss: None = olculemedi (ping/bufferbloat verisi yok).
+    pub latency: Option<u32>,
+    pub jitter: Option<u32>,
+    pub bufferbloat: Option<u32>,
+    pub packet_loss: Option<u32>,
     pub speed: Option<u32>,
     pub wifi: u32,
     pub throttle: Option<u32>,
@@ -121,7 +128,9 @@ pub struct GeneralScore {
     pub voip: Option<u32>,
     pub dns_benchmark: Option<u32>,
     pub twitch: Option<u32>,
-    pub total: u32,
+    /// None = yetersiz veri: ag-kalitesi olcumu (gecikme/jitter/kayip/bufferbloat/hiz) yok;
+    /// Wi-Fi/diger moduller tek basina genel not uretmez. Bu durumda grade "-".
+    pub total: Option<u32>,
     pub grade: String,
 }
 
@@ -185,14 +194,14 @@ pub async fn run_module_verdict(
 #[allow(dead_code)]
 fn synthesize_gaming(gs: &GamingScore) -> Synthesis {
     let mut insights = Vec::new();
-    let total = gs.total;
+    let Some(total) = gs.total else { return insufficient_synthesis(); };
     let grade = score_to_grade(total);
 
     // En zayif halka (oyun deneyimini bozan ilk faktor)
     let weakest = [
         ("latency", gs.latency), ("jitter", gs.jitter),
         ("bufferbloat", gs.bufferbloat), ("packet_loss", gs.packet_loss),
-    ].iter().min_by_key(|(_, v)| *v).map(|(k, _)| *k).unwrap_or("latency");
+    ].iter().filter_map(|(k, v)| v.map(|v| (*k, v))).min_by_key(|(_, v)| *v).map(|(k, _)| k).unwrap_or("latency");
 
     // Headline: toplam skora gore
     let headline_key = if total >= 85 {
@@ -206,10 +215,10 @@ fn synthesize_gaming(gs: &GamingScore) -> Synthesis {
     }.to_string();
 
     // Pozitif: guclu faktorler
-    if gs.latency >= 85 { insights.push(ins("positive", "synth_g_low_ping")); }
-    if gs.jitter >= 85 { insights.push(ins("positive", "synth_g_stable")); }
-    if gs.bufferbloat >= 85 { insights.push(ins("positive", "synth_g_no_bloat")); }
-    if gs.packet_loss >= 90 { insights.push(ins("positive", "synth_g_no_loss")); }
+    if gs.latency.is_some_and(|v| v >= 85) { insights.push(ins("positive", "synth_g_low_ping")); }
+    if gs.jitter.is_some_and(|v| v >= 85) { insights.push(ins("positive", "synth_g_stable")); }
+    if gs.bufferbloat.is_some_and(|v| v >= 85) { insights.push(ins("positive", "synth_g_no_bloat")); }
+    if gs.packet_loss.is_some_and(|v| v >= 90) { insights.push(ins("positive", "synth_g_no_loss")); }
 
     // Negatif/notr: en zayif halka uzerinden
     if total < 85 {
@@ -232,13 +241,13 @@ fn synthesize_gaming(gs: &GamingScore) -> Synthesis {
         insights.push(ins("negative", "synth_g_verdict_struggle"));
     }
 
-    Synthesis { score: total, grade, headline_key, insights }
+    Synthesis { score: Some(total), grade, headline_key, insights }
 }
 
 /// GENEL buyuk resim sentezi — hiz/upload/throttle/isp/ipv6/wifi dahil.
 fn synthesize_general(gs: &GeneralScore, input: &DiagnosticInput) -> Synthesis {
     let mut insights = Vec::new();
-    let total = gs.total;
+    let Some(total) = gs.total else { return insufficient_synthesis(); };
     let grade = score_to_grade(total);
 
     let headline_key = if total >= 85 {
@@ -263,8 +272,11 @@ fn synthesize_general(gs: &GeneralScore, input: &DiagnosticInput) -> Synthesis {
         insights.push(ins("neutral", "synth_n_asymmetric"));
     }
     // Bufferbloat (paylasimli kullanim)
-    if gs.bufferbloat >= 85 { insights.push(ins("positive", "synth_n_shared_ok")); }
-    else if gs.bufferbloat < 55 { insights.push(ins("negative", "synth_n_bloat")); }
+    // bufferbloat olculemediyse (None) olcume dayali icgoru uretilmez.
+    if let Some(bb) = gs.bufferbloat {
+        if bb >= 85 { insights.push(ins("positive", "synth_n_shared_ok")); }
+        else if bb < 55 { insights.push(ins("negative", "synth_n_bloat")); }
+    }
     // Throttle
     if let Some(th) = gs.throttle {
         if th >= 95 { insights.push(ins("positive", "synth_n_no_throttle")); }
@@ -282,7 +294,18 @@ fn synthesize_general(gs: &GeneralScore, input: &DiagnosticInput) -> Synthesis {
     // Wi-Fi
     if gs.wifi < 55 { insights.push(ins("neutral", "synth_n_wifi_weak")); }
 
-    Synthesis { score: total, grade, headline_key, insights }
+    Synthesis { score: Some(total), grade, headline_key, insights }
+}
+
+/// Ag-kalitesi olcumu olmadiginda sentez: not/baslik/icgoru URETILMEZ (Wi-Fi tek basina
+/// "100 / A+" dedirtmez). UI skoru "—", basligi `synth_insufficient_data` ile gosterir.
+fn insufficient_synthesis() -> Synthesis {
+    Synthesis {
+        score: None,
+        grade: "-".to_string(),
+        headline_key: "synth_insufficient_data".to_string(),
+        insights: Vec::new(),
+    }
 }
 
 /// Skor (0-100) -> 5'li toptan durum etiketi (renk/ozet icin).
@@ -298,9 +321,14 @@ fn status_from_score(score: u32) -> &'static str {
 
 /// Toptan durum: en dusuk skorlu modullere gore (zincirin en zayif halkasi).
 fn compute_overall_status(modules: &[ModuleVerdict]) -> String {
-    let avail: Vec<&ModuleVerdict> = modules.iter().filter(|m| m.available).collect();
-    if avail.is_empty() {
-        return "good".to_string();
+    // IPv6 bir YETENEK (capability): yoklugu operasyonel bozukluk degil. Skoruna/agirligina
+    // genel skorda dokunulmaz, ama toptan durumu (critical/poor tetigi + ortalama) belirlemez.
+    let avail: Vec<&ModuleVerdict> = modules.iter().filter(|m| m.available && m.module != "ipv6").collect();
+    // Ag-kalitesi modulu (gecikme/jitter/kayip/bufferbloat/hiz) olculmediyse Wi-Fi/ISP/IPv6 vb.
+    // tek basina "excellent/good" dedirtmez: durum belirsiz (yetersiz veri).
+    let quality = |m: &&ModuleVerdict| matches!(m.module.as_str(), "latency" | "jitter" | "loss" | "bufferbloat" | "speed");
+    if !avail.iter().any(quality) {
+        return "unknown".to_string();
     }
     // Kritik bir modul varsa toptan da kritik (zayif halka prensibi).
     if avail.iter().any(|m| m.score < 35) {
@@ -420,13 +448,20 @@ fn compute_gaming_score(input: &DiagnosticInput) -> GamingScore {
     };
 
     // Gaming ağırlıklı toplam: latency %35 + jitter %30 + bufferbloat %25 + loss %10
-    let total = (latency_score * 35
-        + jitter_score * 30
-        + bufferbloat_score * 25
-        + loss_score * 10)
-        / 100;
+    // Olculemeyen bilesenler (ping yok / bufferbloat yok-gecersiz) None: agirliktan cikarilir.
+    let have_ping = has_reachable_ping(&input.ping_results);
+    let latency_score = have_ping.then_some(latency_score);
+    let jitter_score = have_ping.then_some(jitter_score);
+    let loss_score = have_ping.then_some(loss_score);
+    let bufferbloat_score = bufferbloat_grade(&input.bufferbloat).map(|_| bufferbloat_score);
+    let total = weighted_total(&[
+        (latency_score, 35),
+        (jitter_score, 30),
+        (bufferbloat_score, 25),
+        (loss_score, 10),
+    ]);
 
-    let grade = score_to_grade(total);
+    let grade = grade_of(total);
 
     GamingScore {
         latency: latency_score,
@@ -476,7 +511,6 @@ fn extract_wifi_scan_metrics(wifi_scan: &serde_json::Value) -> Option<(i32, u32,
     let rssi_dbm = connected.get("rssi").and_then(|v| v.as_i64()).unwrap_or(-100) as i32;
     let my_ch = connected.get("channel").and_then(|v| v.as_u64()).unwrap_or(0);
     let my_bssid = connected.get("bssid").and_then(|v| v.as_str()).unwrap_or("");
-    let my_oui = if my_bssid.len() >= 8 { &my_bssid[..8] } else { "" };
     let my_ssid = connected.get("ssid").and_then(|v| v.as_str()).unwrap_or("");
     // Count foreign co-channel APs above noise floor
     let co_channel = aps.iter().filter(|ap| {
@@ -485,10 +519,10 @@ fn extract_wifi_scan_metrics(wifi_scan: &serde_json::Value) -> Option<(i32, u32,
         let ch = ap.get("channel").and_then(|v| v.as_u64()).unwrap_or(0);
         if ch != my_ch { return false; }
         let bssid = ap.get("bssid").and_then(|v| v.as_str()).unwrap_or("");
-        let oui = if bssid.len() >= 8 { &bssid[..8] } else { "" };
         let ssid = ap.get("ssid").and_then(|v| v.as_str()).unwrap_or("");
-        // Exclude own OUI or same SSID (same AP/roaming partner)
-        if !oui.is_empty() && oui == my_oui { return false; }
+        // Exclude same-device virtual BSSIDs or same SSID (same AP/roaming partner);
+        // vendor OUI alone does not imply ownership (neighbour's same-brand router counts).
+        if crate::wifi_scan::is_same_device_bssid(bssid, my_bssid) { return false; }
         if !ssid.is_empty() && ssid == my_ssid { return false; }
         // Above noise floor (-85 dBm)
         let rssi = ap.get("rssi").and_then(|v| v.as_i64()).unwrap_or(-100);
@@ -678,25 +712,39 @@ fn compute_general_score(input: &DiagnosticInput) -> GeneralScore {
     //   2 protokol: orta → 30
     //   3 protokol: ağır → 12
     // -------------------------------------------------------------------------
-    let throttle_score: Option<u32> = input.throttle.as_ref().map(|t| {
+    let throttle_score: Option<u32> = input.throttle.as_ref().and_then(|t| {
+        // Ölçüm BAŞARISIZ mı? Sunucuya ulaşılamazsa baseline 0 olur ve tüm protokol
+        // verdict'leri "Error" döner. Bu "throttling yok" DEĞİL, "ölçülemedi" demek →
+        // None döndür ki skora girmesin (aksi halde isp_throttles=false sanılıp 100/A+ verir).
+        let verdicts = ["bittorrent_verdict", "quic_verdict", "wireguard_verdict", "openvpn_verdict"];
+        // Backend ayrica "inconclusive" isaretler (baseline yok / bir protokol Error ve kisitlama
+        // bulunmadi): "temiz" degil "olculemedi" -> skora girmez.
+        let inconclusive = t.get("inconclusive").and_then(|v| v.as_bool()) == Some(true);
+        let all_error = verdicts.iter().all(|k| {
+            matches!(t.get(k).and_then(|v| v.as_str()), Some("Error") | None | Some(""))
+        });
+        if all_error || inconclusive {
+            return None;
+        }
         let throttled = t.get("isp_throttles")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
         if !throttled {
-            return 100;
+            return Some(100);
         }
         // Kaç protokol "Throttled" veya "Blocked"? (BT/QUIC/WG/OpenVPN — 4 protokol)
-        let bt  = matches!(t.get("bittorrent_verdict").and_then(|v| v.as_str()), Some("Throttled") | Some("Blocked"));
-        let qu  = matches!(t.get("quic_verdict").and_then(|v| v.as_str()),       Some("Throttled") | Some("Blocked"));
-        let wg  = matches!(t.get("wireguard_verdict").and_then(|v| v.as_str()),  Some("Throttled") | Some("Blocked"));
-        let ov  = matches!(t.get("openvpn_verdict").and_then(|v| v.as_str()),    Some("Throttled") | Some("Blocked"));
-        match (bt as u8) + (qu as u8) + (wg as u8) + (ov as u8) {
-            0 => 100, // isp_throttles=true ama hiçbir protokol match etmedi
+        // starts_with: "Blocked (RST)" / "Blocked (DROP)" da kisitlama sayilir.
+        let bt  = is_restrictive_verdict(t.get("bittorrent_verdict").and_then(|v| v.as_str()).unwrap_or(""));
+        let qu  = is_restrictive_verdict(t.get("quic_verdict").and_then(|v| v.as_str()).unwrap_or(""));
+        let wg  = is_restrictive_verdict(t.get("wireguard_verdict").and_then(|v| v.as_str()).unwrap_or(""));
+        let ov  = is_restrictive_verdict(t.get("openvpn_verdict").and_then(|v| v.as_str()).unwrap_or(""));
+        Some(match (bt as u8) + (qu as u8) + (wg as u8) + (ov as u8) {
+            0 => return None, // TUTARSIZ veri (isp_throttles=true ama kisitli verdict yok): 100 DEGIL, bilinmiyor; hiçbir protokol match etmedi
             1 => 58,  // hafif (genellikle sadece BT — bazı ISS'ler torrent'i kısıtlar)
             2 => 35,  // orta
             3 => 18,  // ciddi — VPN protokolleri de etkileniyor
             _ => 8,   // ağır — dört protokol birden (agresif DPI)
-        }
+        })
     });
 
     // -------------------------------------------------------------------------
@@ -707,11 +755,15 @@ fn compute_general_score(input: &DiagnosticInput) -> GeneralScore {
     // MITM: çok ağır — güvenlik ihlali
     // Türkiye'de DNS hijacking yaygın — tek başına 30 puan düşmüyor
     // -------------------------------------------------------------------------
-    let isp_score: Option<u32> = input.isp_intervention.as_ref().map(|isp| {
-        let dns     = matches!(isp.get("dns_hijack").and_then(|v| v.get("verdict")).and_then(|v| v.as_str()),      Some("Hijacked"));
-        let proxy   = matches!(isp.get("transparent_proxy").and_then(|v| v.get("verdict")).and_then(|v| v.as_str()), Some("Detected"));
-        let sni     = matches!(isp.get("sni_filtering").and_then(|v| v.get("verdict")).and_then(|v| v.as_str()),   Some("Filtered"));
-        let mitm    = matches!(isp.get("mitm").and_then(|v| v.get("verdict")).and_then(|v| v.as_str()),            Some("Detected"));
+    // Alt-test durumu: Some(true)=tespit, Some(false)=temiz(Normal), None=Inconclusive/eksik.
+    // Hic alt-test sonuclanmadiysa modul OLCULEMEDI (None): "temiz" = 100 DEGIL. Sonuclananlar
+    // varsa yalnizca onlar puanlanir (Inconclusive ceza da, odul de getirmez).
+    let isp_score: Option<u32> = input.isp_intervention.as_ref().and_then(|isp| {
+        let states = isp_subtest_states(isp);
+        if states.iter().all(|s| s.is_none()) {
+            return None;
+        }
+        let [dns, proxy, sni, mitm] = states.map(|s| s == Some(true));
 
         // Ceza puanları (kumulatif, min 5)
         let mut penalty: u32 = 0;
@@ -719,7 +771,7 @@ fn compute_general_score(input: &DiagnosticInput) -> GeneralScore {
         if proxy { penalty += 20; } // Performans etkisi
         if sni   { penalty += 25; } // Erişim engeli
         if mitm  { penalty += 40; } // Güvenlik ihlali — ağır
-        100u32.saturating_sub(penalty).max(5)
+        Some(100u32.saturating_sub(penalty).max(5))
     });
 
     // -------------------------------------------------------------------------
@@ -735,7 +787,7 @@ fn compute_general_score(input: &DiagnosticInput) -> GeneralScore {
             .unwrap_or("None");
         match grade {
             "Full"    => 100, // Native dual-stack
-            "Partial" => 45,  // Tunnel/6to4 — tam native değil
+            "Partial" | "Tunnel" => 45,  // Tunnel/6to4 — tam native değil
             _         => 0,   // IPv6 yok — 0 puan (haklı talep)
         }
     });
@@ -745,12 +797,20 @@ fn compute_general_score(input: &DiagnosticInput) -> GeneralScore {
     // Sabit (her zaman ölçülür): latency(12)+jitter(8)+bufferbloat(10)+loss(10)+wifi(10)=50
     // Opsiyonel: speed(25)+throttle(12)+isp(10)+ipv6(3) = max 50
     // -------------------------------------------------------------------------
-    let mut weighted_sum: u32 = latency_score * 12
-        + jitter_score * 8
-        + bufferbloat_score * 10
-        + loss_score * 10
-        + wifi_score * 10;
-    let mut total_weight: u32 = 50;
+    // Ping-turevi (latency/jitter/loss) ve bufferbloat olculemediyse None -> agirliktan cikarilir
+    // (eskiden bos ping 0.0 jitter/loss => mukemmel skor, eksik bufferbloat => F veriyordu).
+    let have_ping = has_reachable_ping(&input.ping_results);
+    let latency_score = have_ping.then_some(latency_score);
+    let jitter_score = have_ping.then_some(jitter_score);
+    let packet_loss_score = have_ping.then_some(loss_score);
+    let bufferbloat_score = bufferbloat_grade(&input.bufferbloat).map(|_| bufferbloat_score);
+    // Wi-Fi her zaman olculur (Ethernet = tam puan): sabit agirlik 10.
+    let mut weighted_sum: u32 = wifi_score * 10;
+    let mut total_weight: u32 = 10;
+    if let Some(s) = latency_score      { weighted_sum += s * 12; total_weight += 12; }
+    if let Some(s) = jitter_score       { weighted_sum += s * 8;  total_weight += 8;  }
+    if let Some(s) = bufferbloat_score  { weighted_sum += s * 10; total_weight += 10; }
+    if let Some(s) = packet_loss_score  { weighted_sum += s * 10; total_weight += 10; }
 
     // CGNAT skoru (dusuk agirlik): teoride seffaf ama pratikte port forward yok,
     // P2P/oyun NAT sorunlari, cift-NAT gecikmesi -> gercek kullanici acisi.
@@ -811,14 +871,18 @@ fn compute_general_score(input: &DiagnosticInput) -> GeneralScore {
         if best_rtt.is_finite() { Some(twitch_rtt_score(best_rtt)) } else { None }
     });
 
-    let total = weighted_sum / total_weight;
-    let grade = score_to_grade(total);
+    // Ag-kalitesi olcumu (gecikme/jitter/kayip/bufferbloat/hiz) yoksa Wi-Fi ve diger moduller tek
+    // basina genel not URETMEZ (Ethernet = Wi-Fi 100 -> sahte "A+"): yetersiz veri (None).
+    let quality_measured = latency_score.is_some() || jitter_score.is_some()
+        || packet_loss_score.is_some() || bufferbloat_score.is_some() || speed_score.is_some();
+    let total = if quality_measured && total_weight > 0 { Some(weighted_sum / total_weight) } else { None };
+    let grade = grade_of(total);
 
     GeneralScore {
         latency: latency_score,
         jitter: jitter_score,
         bufferbloat: bufferbloat_score,
-        packet_loss: loss_score,
+        packet_loss: packet_loss_score,
         speed: speed_score,
         wifi: wifi_score,
         throttle: throttle_score,
@@ -868,27 +932,48 @@ fn build_module_verdicts(input: &DiagnosticInput) -> Vec<ModuleVerdict> {
 
     // ── Cekirdek (her zaman olculur) ────────────────────────────────────
     let best_ping = extract_best_ping(&input.ping_results);
-    let mut latency_v = verdict("latency", gs.latency, best_ping, "ms", true);
-    latency_v.insights = latency_insights(best_ping);
-    out.push(latency_v);
+    match gs.latency {
+        Some(s) => {
+            let mut latency_v = verdict("latency", s, best_ping, "ms", true);
+            latency_v.insights = latency_insights(best_ping);
+            out.push(latency_v);
+        }
+        None => out.push(unavailable("latency", "ms")),
+    }
 
     let avg_jitter = extract_avg_jitter(&input.ping_results);
     let wifi_connected = input.wifi.get("connected").and_then(|v| v.as_bool()).unwrap_or(false);
     let wifi_signal = input.wifi.get("signal_percent").and_then(|v| v.as_u64()).unwrap_or(0) as f64;
-    let mut jitter_v = verdict("jitter", gs.jitter, avg_jitter, "ms", true);
-    jitter_v.insights = jitter_insights(avg_jitter, wifi_connected);
-    out.push(jitter_v);
+    match gs.jitter {
+        Some(s) => {
+            let mut jitter_v = verdict("jitter", s, avg_jitter, "ms", true);
+            jitter_v.insights = jitter_insights(avg_jitter, wifi_connected);
+            out.push(jitter_v);
+        }
+        None => out.push(unavailable("jitter", "ms")),
+    }
 
     let avg_loss = extract_avg_loss(&input.ping_results);
-    let mut loss_v = verdict("loss", gs.packet_loss, avg_loss, "%", true);
-    loss_v.insights = loss_insights(avg_loss);
-    out.push(loss_v);
+    match gs.packet_loss {
+        Some(s) => {
+            let mut loss_v = verdict("loss", s, avg_loss, "%", true);
+            loss_v.insights = loss_insights(avg_loss);
+            out.push(loss_v);
+        }
+        None => out.push(unavailable("loss", "%")),
+    }
 
     let bloat_delta = input.bufferbloat.get("latency_delta_ms")
         .and_then(|v| v.as_f64()).unwrap_or(0.0);
-    let mut bloat_v = verdict("bufferbloat", gs.bufferbloat, bloat_delta, "ms", true);
-    bloat_v.insights = bufferbloat_insights(bloat_delta);
-    out.push(bloat_v);
+    // bufferbloat olculemediyse (null/grade yok) modul kullanilamaz; delta=0.0 ile "mukemmel" yorum URETILMEZ.
+    match gs.bufferbloat {
+        Some(s) => {
+            let mut bloat_v = verdict("bufferbloat", s, bloat_delta, "ms", true);
+            bloat_v.insights = bufferbloat_insights(bloat_delta);
+            out.push(bloat_v);
+        }
+        None => out.push(unavailable("bufferbloat", "ms")),
+    }
 
     // wifi_insights ek parametreler: rssi_dbm + co_channel + band + width + ch (wifi_scan'dan)
     let (wifi_rssi_dbm, wifi_co_channel, wifi_band, wifi_width, wifi_ch) = input.wifi_scan.as_ref()
@@ -1208,8 +1293,10 @@ fn speed_insights(dl: f64, ul: f64) -> Vec<Insight> {
 fn throttle_insights(input: &DiagnosticInput) -> Vec<Insight> {
     let mut v = Vec::new();
     let t = match &input.throttle { Some(t) => t, None => return v };
+    // Olculemedi (inconclusive / hepsi Error): "temiz" icgorusu uretilmez.
+    if !throttle_measured(t) { return v; }
     let vd = |k: &str| t.get(k).and_then(|x| x.as_str()).unwrap_or("");
-    let bad = |s: &str| s == "Throttled" || s == "Blocked";
+    let bad = is_restrictive_verdict;
     let bt = bad(vd("bittorrent_verdict"));
     let qu = bad(vd("quic_verdict"));
     let wg = bad(vd("wireguard_verdict"));
@@ -1232,25 +1319,63 @@ fn throttle_insights(input: &DiagnosticInput) -> Vec<Insight> {
     v
 }
 
+/// Verdict kategorisi: "Throttled" / "Blocked" ve "Blocked (RST)" / "Blocked (DROP)" gibi ekli hali.
+fn is_restrictive_verdict(s: &str) -> bool {
+    s.starts_with("Throttled") || s.starts_with("Blocked")
+}
+
+/// false = throttle sonucu "olculemedi": backend `inconclusive` dedi veya tum protokol
+/// verdict'leri Error/yok. Bu durum ne "temiz" ne "kisitli" sayilir.
+fn throttle_measured(t: &serde_json::Value) -> bool {
+    if t.get("inconclusive").and_then(|v| v.as_bool()) == Some(true) {
+        return false;
+    }
+    ["bittorrent_verdict", "quic_verdict", "wireguard_verdict", "openvpn_verdict"]
+        .iter()
+        .any(|k| !matches!(t.get(k).and_then(|v| v.as_str()), Some("Error") | None | Some("")))
+}
+
 /// ISP MUDAHALE icgoruleri — isp_intervention JSON'undan.
 fn isp_insights(input: &DiagnosticInput) -> Vec<Insight> {
     let mut v = Vec::new();
     let isp = match &input.isp_intervention { Some(i) => i, None => return v };
-    let verd = |k: &str| isp.get(k).and_then(|x| x.get("verdict")).and_then(|x| x.as_str()).unwrap_or("");
-    let dns = verd("dns_hijack") == "Hijacked";
-    let proxy = verd("transparent_proxy") == "Detected";
-    let sni = verd("sni_filtering") == "Filtered";
-    let mitm = verd("mitm") == "Detected";
+    let states = isp_subtest_states(isp);
+    let inconclusive = states.iter().any(|s| s.is_none());
+    let [dns, proxy, sni, mitm] = states.map(|s| s == Some(true));
     if !dns && !proxy && !sni && !mitm {
-        v.push(ins("positive", "insight_isp_clean"));
-        v.push(ins("positive", "insight_isp_integrity"));
+        // "Tamamen temiz" yalnizca dort alt-test de sonuclandiysa soylenir.
+        if inconclusive {
+            v.push(ins("neutral", "insight_isp_partial"));
+        } else {
+            v.push(ins("positive", "insight_isp_clean"));
+            v.push(ins("positive", "insight_isp_integrity"));
+        }
     } else {
         if dns { v.push(ins("neutral", "insight_isp_dns_hijack")); }
         if proxy { v.push(ins("negative", "insight_isp_proxy")); }
         if sni { v.push(ins("negative", "insight_isp_sni")); }
         if mitm { v.push(ins("negative", "insight_isp_mitm")); }
+        if inconclusive { v.push(ins("neutral", "insight_isp_partial")); }
     }
     v
+}
+
+/// ISP mudahale puanina giren 4 alt-testin durumu [dns, proxy, sni, mitm]:
+/// Some(true)=tespit (Hijacked/Detected/Filtered/Detected), Some(false)=Normal, None=Inconclusive/eksik.
+fn isp_subtest_states(isp: &serde_json::Value) -> [Option<bool>; 4] {
+    let state = |key: &str, affirmative: &str| -> Option<bool> {
+        match isp.get(key).and_then(|x| x.get("verdict")).and_then(|x| x.as_str()) {
+            Some("Normal") => Some(false),
+            Some(v) if v == affirmative => Some(true),
+            _ => None,
+        }
+    };
+    [
+        state("dns_hijack", "Hijacked"),
+        state("transparent_proxy", "Detected"),
+        state("sni_filtering", "Filtered"),
+        state("mitm", "Detected"),
+    ]
 }
 
 /// IPv6 icgoruleri — ipv6 JSON connectivity_grade'ine gore.
@@ -1321,6 +1446,7 @@ fn voip_insights(input: &DiagnosticInput) -> Vec<Insight> {
     if mos >= 4.0      { v.push(ins("positive", "insight_voip_excellent")); }
     else if mos >= 3.6 { v.push(ins("positive", "insight_voip_good")); }
     else if mos >= 3.1 { v.push(ins("neutral",  "insight_voip_acceptable")); }
+    else if mos >= 2.6 { v.push(ins("neutral",  "insight_voip_marginal")); }
     else if mos > 0.0  { v.push(ins("negative", "insight_voip_poor")); }
     v.push(ins("neutral", "insight_voip_udp_real"));
     v.push(ins("neutral", "insight_voip_emodel_estimate"));
@@ -1450,13 +1576,29 @@ fn compute_fps_score(input: &DiagnosticInput) -> FpsScore {
     };
 
     // Agirlikli toplam: latency*30 + jitter*30 + loss*25 + bufferbloat*10 + wifi*5
-    let total = (latency_score.wrapping_mul(30)
-        .wrapping_add(jitter_score.wrapping_mul(30))
-        .wrapping_add(loss_score.wrapping_mul(25))
-        .wrapping_add(bufferbloat_score.wrapping_mul(10))
-        .wrapping_add(wifi_score.wrapping_mul(5)))
-        / 100;
-    let grade = score_to_grade(total);
+    // Olculemeyen bilesenler (ping yok / bufferbloat null-gecersiz) None: agirliktan cikarilir,
+    // F (=5 puan) veya "mukemmel" (0 jitter/loss) varsayimi YAPILMAZ.
+    let have_ping = has_reachable_ping(&input.ping_results);
+    let latency_score = have_ping.then_some(latency_score);
+    let jitter_score = have_ping.then_some(jitter_score);
+    let loss_score = have_ping.then_some(loss_score);
+    let bufferbloat_score = bufferbloat_grade(&input.bufferbloat).map(|_| bufferbloat_score);
+    // Wi-Fi tek basina not URETMEZ: ag-kalitesi olcumu (gecikme/jitter/kayip/bufferbloat) yoksa
+    // Ethernet/baglantisiz Wi-Fi "100 / A+" olurdu -> yetersiz veri (None).
+    let quality_measured = latency_score.is_some() || jitter_score.is_some()
+        || loss_score.is_some() || bufferbloat_score.is_some();
+    let total = if quality_measured {
+        weighted_total(&[
+            (latency_score, 30),
+            (jitter_score, 30),
+            (loss_score, 25),
+            (bufferbloat_score, 10),
+            (Some(wifi_score), 5),
+        ])
+    } else {
+        None
+    };
+    let grade = grade_of(total);
 
     FpsScore {
         latency: latency_score,
@@ -1471,7 +1613,7 @@ fn compute_fps_score(input: &DiagnosticInput) -> FpsScore {
 
 /// FPS buyuk resim sentezi — oyun-turu kopru insight dahil.
 fn synthesize_fps(fs: &FpsScore) -> Synthesis {
-    let total = fs.total;
+    let Some(total) = fs.total else { return insufficient_synthesis(); };
     let grade = score_to_grade(total);
     let mut insights = Vec::new();
 
@@ -1486,20 +1628,22 @@ fn synthesize_fps(fs: &FpsScore) -> Synthesis {
     }.to_string();
 
     // Pozitif: guclu metrikler
-    if fs.latency >= 85 { insights.push(ins("positive", "synth_g_low_ping")); }
-    if fs.jitter >= 85 { insights.push(ins("positive", "synth_g_stable")); }
-    if fs.bufferbloat >= 85 { insights.push(ins("positive", "synth_g_no_bloat")); }
-    if fs.packet_loss >= 90 { insights.push(ins("positive", "synth_g_no_loss")); }
-    if fs.wifi >= 85 { insights.push(ins("positive", "synth_g_low_ping")); } // Ethernet/iyi WiFi
+    // Olculemeyen (None) bilesenler icin olcume dayali icgoru uretilmez.
+    // Dusuk ping icgorusu YALNIZCA gecikme skoruna baglidir; Wi-Fi'nin kendi anahtari var.
+    if fs.latency.is_some_and(|v| v >= 85) { insights.push(ins("positive", "synth_g_low_ping")); }
+    if fs.jitter.is_some_and(|v| v >= 85) { insights.push(ins("positive", "synth_g_stable")); }
+    if fs.bufferbloat.is_some_and(|v| v >= 85) { insights.push(ins("positive", "synth_g_no_bloat")); }
+    if fs.packet_loss.is_some_and(|v| v >= 90) { insights.push(ins("positive", "synth_g_no_loss")); }
+    if fs.wifi >= 85 { insights.push(ins("positive", "synth_g_wifi_good")); } // Ethernet/iyi WiFi
 
-    // En zayif halka tespiti
+    // En zayif halka tespiti (yalnizca olculen bilesenler)
     let weakest = [
         ("latency", fs.latency),
         ("jitter", fs.jitter),
         ("packet_loss", fs.packet_loss),
         ("bufferbloat", fs.bufferbloat),
-        ("wifi", fs.wifi),
-    ].iter().min_by_key(|(_, v)| *v).map(|(k, _)| *k).unwrap_or("latency");
+        ("wifi", Some(fs.wifi)),
+    ].iter().filter_map(|(k, v)| v.map(|v| (*k, v))).min_by_key(|(_, v)| *v).map(|(k, _)| k).unwrap_or("latency");
 
     // Negatif/notr: en zayif halka
     if total < 90 {
@@ -1507,6 +1651,7 @@ fn synthesize_fps(fs: &FpsScore) -> Synthesis {
             "latency" => "synth_g_weak_latency",
             "jitter" => "synth_g_weak_jitter",
             "packet_loss" => "synth_g_weak_loss",
+            "wifi" => "synth_g_weak_wifi",
             _ => "synth_g_weak_bloat",
         };
         let kind = if total < 60 { "negative" } else { "neutral" };
@@ -1515,13 +1660,15 @@ fn synthesize_fps(fs: &FpsScore) -> Synthesis {
 
     // Oyun-turu kopru insight (KRITIK): zayif FPS ama MOBA/strateji/co-op sorunsuz
     let reflex_weak = matches!(weakest, "latency" | "jitter" | "packet_loss");
+    // Refleks metrikleri (ping/jitter/loss) olculmediyse "hepsi iyi" koprusu uretilmez.
+    let reflex_measured = fs.latency.is_some() && fs.jitter.is_some() && fs.packet_loss.is_some();
     if total < 75 && reflex_weak {
         insights.push(ins("neutral", "synth_fps_bridge_reflex"));
-    } else {
+    } else if reflex_measured {
         insights.push(ins("positive", "synth_fps_bridge_allgood"));
     }
 
-    Synthesis { score: total, grade, headline_key, insights }
+    Synthesis { score: Some(total), grade, headline_key, insights }
 }
 
 /// FPS Tanilama komutu — sadece FPS-ilgili moduller (latency/jitter/loss/bufferbloat/wifi).
@@ -1551,10 +1698,8 @@ fn local_analyze(
     let best_ping = extract_best_ping(&input.ping_results);
     let avg_jitter = extract_avg_jitter(&input.ping_results);
     let avg_loss = extract_avg_loss(&input.ping_results);
-    let bloat_grade = input.bufferbloat
-        .get("grade")
-        .and_then(|v| v.as_str())
-        .unwrap_or("F");
+    // None = bufferbloat olculemedi (null/gecersiz): sorun uretilmez.
+    let bloat_grade = bufferbloat_grade(&input.bufferbloat);
     let wifi_connected = input.wifi
         .get("connected")
         .and_then(|v| v.as_bool())
@@ -1564,7 +1709,7 @@ fn local_analyze(
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
 
-    if best_ping > 80.0 {
+    if has_reachable_ping(&input.ping_results) && best_ping > 80.0 {
         issues.push(format!("Sunucu gecikmesi yüksek ({:.0}ms)", best_ping));
         suggestions.push("Daha yakın sunucu bölgesi seçin veya ISS'inizi değiştirmeyi düşünün.".to_string());
     }
@@ -1583,7 +1728,7 @@ fn local_analyze(
         suggestions.push("Router'ı yeniden başlatın. Sorun devam ederse ISS'inizi arayın.".to_string());
     }
 
-    if matches!(bloat_grade, "C" | "D" | "F") {
+    if matches!(bloat_grade, Some("C" | "D" | "F")) {
         let delta = input.bufferbloat
             .get("latency_delta_ms")
             .and_then(|v| v.as_f64())
@@ -1598,21 +1743,54 @@ fn local_analyze(
         suggestions.push("Router'a daha yakın konumlanın veya Wi-Fi repeater kullanın.".to_string());
     }
 
+    // Olcum yoksa (None) "0/100" yerine "—" gosterilir.
+    let total_txt = score.total.map_or_else(|| "\u{2014}".to_string(), |t| t.to_string());
     let summary = if issues.is_empty() {
         format!(
             "Ağ bağlantınız oyun için uygun görünüyor. Gaming skoru: {}/100 ({})",
-            score.total, score.grade
+            total_txt, score.grade
         )
     } else {
         format!(
             "Gaming skoru: {}/100 ({}). {} sorun tespit edildi.",
-            score.total,
+            total_txt,
             score.grade,
             issues.len()
         )
     };
 
     (summary, issues, suggestions, "local".to_string())
+}
+
+/// En az bir reachable sunucu (sayisal avg_ms ile) var mi? Yoksa latency/jitter/loss OLCULEMEDI:
+/// extract_* fonksiyonlarinin 999.0 / 0.0 yedek degerleri skora/icgoruye girmemeli.
+fn has_reachable_ping(ping_results: &serde_json::Value) -> bool {
+    ping_results.as_array().is_some_and(|arr| {
+        arr.iter().any(|r| {
+            r.get("reachable").and_then(|v| v.as_bool()).unwrap_or(false)
+                && r.get("avg_ms").and_then(|v| v.as_f64()).is_some()
+        })
+    })
+}
+
+/// Gecerli bufferbloat grade'i (A+/A/B/C/D/F). Sonuc null/{} ya da grade yok/taninmiyorsa None:
+/// bufferbloat OLCULEMEDI (F varsayilmaz).
+fn bufferbloat_grade(bufferbloat: &serde_json::Value) -> Option<&str> {
+    bufferbloat.get("grade").and_then(|v| v.as_str())
+        .filter(|g| matches!(*g, "A+" | "A" | "B" | "C" | "D" | "F"))
+}
+
+/// (skor, agirlik) listesinden agirlikli ortalama; None (olculemeyen) bilesenler agirliktan cikarilir.
+/// Hicbir bilesen olculmediyse (toplam agirlik 0) None: "0 / F" gibi sahte not uretilmez.
+fn weighted_total(parts: &[(Option<u32>, u32)]) -> Option<u32> {
+    let (mut sum, mut weight) = (0u32, 0u32);
+    for (score, w) in parts {
+        if let Some(s) = score {
+            sum += s * w;
+            weight += w;
+        }
+    }
+    if weight == 0 { None } else { Some(sum / weight) }
 }
 
 fn extract_best_ping(ping_results: &serde_json::Value) -> f64 {
@@ -1720,6 +1898,11 @@ fn extract_avg_loss(ping_results: &serde_json::Value) -> f64 {
     losses.iter().cloned().fold(f64::MAX, f64::min)
 }
 
+/// Opsiyonel skor -> harf notu; skor yoksa (yetersiz veri) "-".
+fn grade_of(score: Option<u32>) -> String {
+    score.map_or_else(|| "-".to_string(), score_to_grade)
+}
+
 /// Skor (0-100) -> harf notu. 6 kademe: A+ A B C D F (akademik standart, E/S yok).
 fn score_to_grade(score: u32) -> String {
     match score {
@@ -1729,5 +1912,370 @@ fn score_to_grade(score: u32) -> String {
         65..=74  => "C".to_string(),
         50..=64  => "D".to_string(),
         _        => "F".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn input_with_throttle(t: serde_json::Value) -> DiagnosticInput {
+        serde_json::from_value(json!({
+            "nic": {}, "wifi": {}, "ping_results": [], "bufferbloat": {},
+            "speed_download": null, "speed_upload": null,
+            "throttle": t, "isp_intervention": null, "ipv6": null
+        })).unwrap()
+    }
+
+    fn throttle_score_of(t: serde_json::Value) -> Option<u32> {
+        compute_general_score(&input_with_throttle(t)).throttle
+    }
+
+    #[test]
+    fn wifi_scan_ayni_marka_komsu_co_channel_sayilir() {
+        let ap = |ssid: &str, bssid: &str, conn: bool| json!({
+            "ssid": ssid, "bssid": bssid, "rssi": -60, "channel": 6,
+            "band": "2.4 GHz", "channel_width": "20 MHz", "is_connected": conn
+        });
+        let scan = json!({ "access_points": [
+            ap("Home", "18:E8:29:10:20:30", true),
+            ap("Home_Guest", "1E:E8:29:10:20:31", false),   // kendi sanal BSSID
+            ap("Neighbour", "18:E8:29:AA:BB:CC", false),     // ayni marka komsu
+        ]});
+        let (_, co, _, _, _) = extract_wifi_scan_metrics(&scan).unwrap();
+        assert_eq!(co, 1);
+    }
+
+    #[test]
+    fn verdict_kategorisi_starts_with() {
+        assert!(is_restrictive_verdict("Throttled"));
+        assert!(is_restrictive_verdict("Blocked"));
+        assert!(is_restrictive_verdict("Blocked (RST)"));
+        assert!(is_restrictive_verdict("Blocked (DROP)"));
+        assert!(!is_restrictive_verdict("Normal"));
+        assert!(!is_restrictive_verdict("Error"));
+        assert!(!is_restrictive_verdict(""));
+    }
+
+    #[test]
+    fn throttle_bt_blocked_rst_puanlanir() {
+        let s = throttle_score_of(json!({
+            "isp_throttles": true,
+            "bittorrent_verdict": "Blocked (RST)", "quic_verdict": "Normal",
+            "wireguard_verdict": "Normal", "openvpn_verdict": "Normal"
+        }));
+        assert_eq!(s, Some(58), "tek kisitli protokol = hafif ceza (eskiden 100)");
+    }
+
+    #[test]
+    fn throttle_tutarsiz_veri_100_vermez() {
+        // isp_throttles=true ama taninan kisitli verdict yok -> bilinmiyor, 100 degil
+        let s = throttle_score_of(json!({
+            "isp_throttles": true,
+            "bittorrent_verdict": "Normal", "quic_verdict": "Normal",
+            "wireguard_verdict": "Normal", "openvpn_verdict": "Normal"
+        }));
+        assert_eq!(s, None);
+    }
+
+    #[test]
+    fn throttle_inconclusive_veya_hepsi_error_skora_girmez() {
+        let inconclusive = json!({
+            "isp_throttles": false, "inconclusive": true,
+            "bittorrent_verdict": "Normal", "quic_verdict": "Error",
+            "wireguard_verdict": "Normal", "openvpn_verdict": "Normal"
+        });
+        assert_eq!(throttle_score_of(inconclusive.clone()), None);
+        assert!(throttle_insights(&input_with_throttle(inconclusive)).is_empty(),
+            "inconclusive icin 'temiz' icgorusu uretilmemeli");
+        let all_error = json!({
+            "isp_throttles": false,
+            "bittorrent_verdict": "Error", "quic_verdict": "Error",
+            "wireguard_verdict": "Error", "openvpn_verdict": "Error"
+        });
+        assert_eq!(throttle_score_of(all_error.clone()), None);
+        assert!(throttle_insights(&input_with_throttle(all_error)).is_empty());
+    }
+
+    #[test]
+    fn throttle_temiz_sonuc_100_ve_pozitif_icgoru() {
+        let clean = json!({
+            "isp_throttles": false, "inconclusive": false,
+            "bittorrent_verdict": "Normal", "quic_verdict": "Normal",
+            "wireguard_verdict": "Normal", "openvpn_verdict": "Normal"
+        });
+        assert_eq!(throttle_score_of(clean.clone()), Some(100));
+        assert!(!throttle_insights(&input_with_throttle(clean)).is_empty());
+    }
+
+    #[test]
+    fn throttle_insights_blocked_drop_sayilir() {
+        let t = json!({
+            "isp_throttles": true,
+            "bittorrent_verdict": "Blocked (DROP)", "quic_verdict": "Normal",
+            "wireguard_verdict": "Normal", "openvpn_verdict": "Normal"
+        });
+        let v = throttle_insights(&input_with_throttle(t));
+        assert!(v.iter().any(|i| i.text_key == "insight_throttle_bittorrent"));
+    }
+
+    // Faz 2b: olculemeyen moduller (ping yok / bufferbloat null / ISP inconclusive)
+
+    fn input_with(ping: serde_json::Value, bloat: serde_json::Value, isp: serde_json::Value) -> DiagnosticInput {
+        serde_json::from_value(json!({
+            "nic": {}, "wifi": {}, "ping_results": ping, "bufferbloat": bloat,
+            "speed_download": null, "speed_upload": null,
+            "throttle": null, "isp_intervention": isp, "ipv6": null
+        })).unwrap()
+    }
+
+    fn good_ping() -> serde_json::Value {
+        json!([{ "name": "CS2", "category": "games", "reachable": true,
+                 "avg_ms": 20.0, "jitter_ms": 1.0, "packet_loss": 0.0 }])
+    }
+
+    fn module<'a>(mods: &'a [ModuleVerdict], id: &str) -> &'a ModuleVerdict {
+        mods.iter().find(|m| m.module == id).unwrap()
+    }
+
+    #[test]
+    fn bufferbloat_null_genel_skorda_olculemedi() {
+        let null = compute_general_score(&input_with(good_ping(), serde_json::Value::Null, serde_json::Value::Null));
+        assert_eq!(null.bufferbloat, None);
+        // F varsayimi olsaydi (5 puan) toplam dusecekti; olculmeyen bilesen agirliktan cikar.
+        assert_eq!(null.total, Some(100));
+        let f = compute_general_score(&input_with(good_ping(), json!({ "grade": "F" }), serde_json::Value::Null));
+        assert_eq!(f.bufferbloat, Some(5));
+        assert!(f.total < null.total);
+        // grade'i olmayan / taninmayan sonuc da olculemedi
+        for b in [json!({}), json!({ "grade": "N/A" }), json!({ "grade": "" })] {
+            assert_eq!(compute_general_score(&input_with(good_ping(), b, serde_json::Value::Null)).bufferbloat, None);
+        }
+    }
+
+    #[test]
+    fn bufferbloat_null_fps_skorda_olculemedi() {
+        let fs = compute_fps_score(&input_with(good_ping(), serde_json::Value::Null, serde_json::Value::Null));
+        assert_eq!(fs.bufferbloat, None);
+        let with_f = compute_fps_score(&input_with(good_ping(), json!({ "grade": "F" }), serde_json::Value::Null));
+        assert_eq!(with_f.bufferbloat, Some(5));
+        assert!(with_f.total < fs.total, "F varsayimi toplami dusururdu; null cikarilmali");
+        // olcume dayali bufferbloat icgorusu yok
+        let syn = synthesize_fps(&fs);
+        assert!(!syn.insights.iter().any(|i| i.text_key == "synth_g_no_bloat" || i.text_key == "synth_g_weak_bloat"));
+        // gaming skoru da ayni
+        let gs = compute_gaming_score(&input_with(good_ping(), serde_json::Value::Null, serde_json::Value::Null));
+        assert_eq!(gs.bufferbloat, None);
+    }
+
+    #[test]
+    fn bufferbloat_null_modul_ve_sentez_icgorusu_yok() {
+        let input = input_with(good_ping(), serde_json::Value::Null, serde_json::Value::Null);
+        let mods = build_module_verdicts(&input);
+        let bb = module(&mods, "bufferbloat");
+        assert!(!bb.available);
+        assert!(bb.insights.is_empty(), "delta=0.0 ile 'dusuk bufferbloat' icgorusu uretilmemeli");
+        assert_eq!(bb.grade, "-");
+        let syn = synthesize_general(&compute_general_score(&input), &input);
+        assert!(!syn.insights.iter().any(|i| i.text_key == "synth_n_shared_ok" || i.text_key == "synth_n_bloat"));
+    }
+
+    #[test]
+    fn bos_ping_latency_jitter_loss_olculemedi() {
+        for ping in [json!([]), json!([{ "name": "CS2", "reachable": false, "avg_ms": 0.0, "jitter_ms": 0.0, "packet_loss": 100.0 }])] {
+            let input = input_with(ping, json!({ "grade": "A" }), serde_json::Value::Null);
+            let gs = compute_general_score(&input);
+            assert_eq!((gs.latency, gs.jitter, gs.packet_loss), (None, None, None));
+            let mods = build_module_verdicts(&input);
+            for id in ["latency", "jitter", "loss"] {
+                let m = module(&mods, id);
+                assert!(!m.available, "{id}");
+                assert!(m.insights.is_empty(), "{id}");
+            }
+            // bufferbloat ve wifi hala olculdu
+            assert!(module(&mods, "bufferbloat").available);
+            let fs = compute_fps_score(&input);
+            assert_eq!((fs.latency, fs.jitter, fs.packet_loss), (None, None, None));
+        }
+    }
+
+    #[test]
+    fn isp_hepsi_inconclusive_modul_yok() {
+        let isp = json!({
+            "dns_hijack": { "verdict": "Inconclusive" }, "transparent_proxy": { "verdict": "Inconclusive" },
+            "sni_filtering": { "verdict": "Inconclusive" }, "mitm": { "verdict": "Inconclusive" }
+        });
+        let input = input_with(good_ping(), json!({ "grade": "A" }), isp);
+        assert_eq!(compute_general_score(&input).isp_intervention, None);
+        let mods = build_module_verdicts(&input);
+        let m = module(&mods, "isp_intervention");
+        assert!(!m.available);
+        assert!(m.insights.is_empty());
+    }
+
+    #[test]
+    fn isp_kismi_inconclusive_temiz_icgoru_yok() {
+        let isp = json!({
+            "dns_hijack": { "verdict": "Normal" }, "transparent_proxy": { "verdict": "Inconclusive" },
+            "sni_filtering": { "verdict": "Normal" }, "mitm": { "verdict": "Inconclusive" }
+        });
+        let input = input_with(good_ping(), json!({ "grade": "A" }), isp);
+        assert_eq!(compute_general_score(&input).isp_intervention, Some(100));
+        let keys: Vec<String> = isp_insights(&input).into_iter().map(|i| i.text_key).collect();
+        assert!(!keys.contains(&"insight_isp_clean".to_string()));
+        assert!(keys.contains(&"insight_isp_partial".to_string()));
+        // hepsi sonuclandiysa temiz icgoru
+        let clean = json!({
+            "dns_hijack": { "verdict": "Normal" }, "transparent_proxy": { "verdict": "Normal" },
+            "sni_filtering": { "verdict": "Normal" }, "mitm": { "verdict": "Normal" }
+        });
+        let keys: Vec<String> = isp_insights(&input_with(good_ping(), json!({}), clean)).into_iter().map(|i| i.text_key).collect();
+        assert!(keys.contains(&"insight_isp_clean".to_string()));
+        // tespit + inconclusive: ceza yalnizca tespit icin
+        let det = json!({
+            "dns_hijack": { "verdict": "Hijacked" }, "transparent_proxy": { "verdict": "Inconclusive" },
+            "sni_filtering": { "verdict": "Normal" }, "mitm": { "verdict": "Normal" }
+        });
+        assert_eq!(compute_general_score(&input_with(good_ping(), json!({}), det)).isp_intervention, Some(88));
+    }
+
+    #[test]
+    fn overall_status_ipv6_yoklugu_critical_yapmaz() {
+        let mods = vec![
+            verdict("latency", 95, 20.0, "ms", true),
+            verdict("jitter", 95, 1.0, "ms", true),
+            verdict("ipv6", 0, 0.0, "", true), // IPv4-only: skor 0
+        ];
+        let st = compute_overall_status(&mods);
+        assert_ne!(st, "critical");
+        assert_ne!(st, "poor");
+        assert_eq!(st, "excellent");
+        // operasyonel bir modul kotuyse hala critical
+        let bad = vec![verdict("latency", 20, 400.0, "ms", true), verdict("ipv6", 100, 0.0, "", true)];
+        assert_eq!(compute_overall_status(&bad), "critical");
+    }
+
+    #[test]
+    fn fps_wifi_icgoruleri_kendi_anahtarlarini_kullanir() {
+        let strong = FpsScore {
+            latency: Some(40), jitter: Some(90), packet_loss: Some(95), bufferbloat: Some(90),
+            wifi: 100, total: Some(80), grade: "B".into(),
+        };
+        let keys: Vec<String> = synthesize_fps(&strong).insights.into_iter().map(|i| i.text_key).collect();
+        // gecikme 40 (<85): dusuk ping icgorusu YOK; wifi iyi icgorusu wifi'ye ozgu
+        assert!(!keys.contains(&"synth_g_low_ping".to_string()));
+        assert!(keys.contains(&"synth_g_wifi_good".to_string()));
+        let weak_wifi = FpsScore {
+            latency: Some(90), jitter: Some(90), packet_loss: Some(95), bufferbloat: Some(90),
+            wifi: 20, total: Some(70), grade: "C".into(),
+        };
+        let keys: Vec<String> = synthesize_fps(&weak_wifi).insights.into_iter().map(|i| i.text_key).collect();
+        assert!(keys.contains(&"synth_g_weak_wifi".to_string()));
+        assert!(!keys.contains(&"synth_g_weak_bloat".to_string()));
+        assert!(keys.contains(&"synth_g_low_ping".to_string())); // latency 90 >= 85
+    }
+
+    // H1: ag-kalitesi olcumu yoksa Wi-Fi/Ethernet tek basina not URETMEZ.
+    fn input_wifi(wifi: serde_json::Value, ping: serde_json::Value, bloat: serde_json::Value, dl: Option<f64>) -> DiagnosticInput {
+        serde_json::from_value(json!({
+            "nic": {}, "wifi": wifi, "ping_results": ping, "bufferbloat": bloat,
+            "speed_download": dl, "speed_upload": null,
+            "throttle": null, "isp_intervention": null, "ipv6": null
+        })).unwrap()
+    }
+
+    #[test]
+    fn yetersiz_veri_hicbir_olcum_yoksa_not_yok() {
+        // Ethernet (wifi baglantisiz) + internet yok: eskiden FPS 100/A+ "competitive" olurdu.
+        for wifi in [json!({}), json!({ "connected": false }), json!({ "connected": true, "signal_percent": 95 })] {
+            let input = input_wifi(wifi, json!([]), serde_json::Value::Null, None);
+            let fs = compute_fps_score(&input);
+            assert_eq!((fs.total, fs.grade.as_str()), (None, "-"));
+            let syn = synthesize_fps(&fs);
+            assert_eq!((syn.score, syn.grade.as_str()), (None, "-"));
+            assert_eq!(syn.headline_key, "synth_insufficient_data");
+            assert!(syn.insights.is_empty());
+
+            let gs = compute_general_score(&input);
+            assert_eq!((gs.total, gs.grade.as_str()), (None, "-"));
+            let gsyn = synthesize_general(&gs, &input);
+            assert_eq!((gsyn.score, gsyn.grade.as_str()), (None, "-"));
+            assert_eq!(gsyn.headline_key, "synth_insufficient_data");
+            assert!(gsyn.insights.is_empty());
+
+            // bos GamingScore 0/F degil
+            let g = compute_gaming_score(&input);
+            assert_eq!((g.total, g.grade.as_str()), (None, "-"));
+            assert_eq!(synthesize_gaming(&g).headline_key, "synth_insufficient_data");
+        }
+    }
+
+    #[test]
+    fn yetersiz_veri_yalniz_wifi_ve_diger_moduller_not_uretmez() {
+        // Wi-Fi + throttle/ISP/IPv6 var ama ag-kalitesi olcumu yok -> yine yetersiz
+        let input: DiagnosticInput = serde_json::from_value(json!({
+            "nic": {}, "wifi": { "connected": false }, "ping_results": [], "bufferbloat": {},
+            "speed_download": null, "speed_upload": null,
+            "throttle": { "isp_throttles": false, "bittorrent_verdict": "Normal", "quic_verdict": "Normal",
+                          "wireguard_verdict": "Normal", "openvpn_verdict": "Normal" },
+            "isp_intervention": null,
+            "ipv6": { "connectivity": { "connectivity_grade": "Full" } }
+        })).unwrap();
+        let gs = compute_general_score(&input);
+        assert_eq!(gs.throttle, Some(100));
+        assert_eq!(gs.ipv6, Some(100));
+        assert_eq!(gs.total, None);
+        assert_eq!(gs.grade, "-");
+        let fs = compute_fps_score(&input);
+        assert_eq!((fs.total, fs.wifi), (None, 100));
+    }
+
+    #[test]
+    fn tek_olcum_varsa_not_verilir() {
+        let eth = json!({ "connected": false });
+        // yalniz ping
+        let p = input_wifi(eth.clone(), good_ping(), serde_json::Value::Null, None);
+        assert!(compute_fps_score(&p).total.is_some());
+        assert_ne!(compute_fps_score(&p).grade, "-");
+        assert!(compute_general_score(&p).total.is_some());
+        assert!(compute_gaming_score(&p).total.is_some());
+        assert_ne!(synthesize_fps(&compute_fps_score(&p)).headline_key, "synth_insufficient_data");
+        // yalniz bufferbloat
+        let b = input_wifi(eth.clone(), json!([]), json!({ "grade": "F" }), None);
+        let fs = compute_fps_score(&b);
+        assert!(fs.total.is_some());
+        assert!(fs.total.unwrap() < 100, "kotu bufferbloat Wi-Fi'ye ragmen not dusurur");
+        assert!(compute_general_score(&b).total.is_some());
+        // yalniz hiz: genel icin yeterli, FPS icin degil
+        let s = input_wifi(eth, json!([]), serde_json::Value::Null, Some(200.0));
+        assert!(compute_general_score(&s).total.is_some());
+        assert_eq!(compute_fps_score(&s).total, None);
+    }
+
+    #[test]
+    fn overall_status_yalniz_wifi_ile_excellent_olmaz() {
+        let only_wifi = vec![verdict("wifi", 100, 0.0, "", true), verdict("ipv6", 100, 0.0, "", true)];
+        assert_eq!(compute_overall_status(&only_wifi), "unknown");
+        assert_eq!(compute_overall_status(&[]), "unknown");
+        let with_latency = vec![verdict("wifi", 100, 0.0, "", true), verdict("latency", 95, 20.0, "ms", true)];
+        assert_eq!(compute_overall_status(&with_latency), "excellent");
+    }
+
+    // H4: IPv6 connectivity_grade -> skor (Tunnel, Partial gibi 45).
+    #[test]
+    fn ipv6_connectivity_grade_skorlari() {
+        let score_of = |g: &str| {
+            let input: DiagnosticInput = serde_json::from_value(json!({
+                "nic": {}, "wifi": {}, "ping_results": [], "bufferbloat": {},
+                "speed_download": null, "speed_upload": null, "throttle": null, "isp_intervention": null,
+                "ipv6": { "connectivity": { "connectivity_grade": g } }
+            })).unwrap();
+            compute_general_score(&input).ipv6
+        };
+        assert_eq!(score_of("Full"), Some(100));
+        assert_eq!(score_of("Partial"), Some(45));
+        assert_eq!(score_of("Tunnel"), Some(45));
+        assert_eq!(score_of("None"), Some(0));
     }
 }

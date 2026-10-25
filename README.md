@@ -8,10 +8,10 @@ NetVeil measures ping, jitter, packet loss, bufferbloat, speed, ISP throttle/int
 - 🎯 **One-click diagnosis** — runs all tests, provides letter grade + clear explanation
 - 🔍 **Tests you won't find elsewhere** — detects whether your ISP throttles BitTorrent/QUIC/WireGuard/OpenVPN traffic at the protocol level
 - 💬 **Understandable** — not "45ms jitter", but "you may experience occasional stutter in competitive games"
-- 🪶 **Lightweight** — small download, quick installer, ready in seconds
+- 🪶 **Windows installer (NSIS)** — install NetVeil; the app uses WebView2
 - 🔒 **Honest** — doesn't claim to measure what it can't, no fabricated scores
 
-![Version](https://img.shields.io/badge/version-0.9.15-purple)
+![Version](https://img.shields.io/badge/version-0.9.23-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-BSL%201.1-orange)
 ![Tauri](https://img.shields.io/badge/Tauri-2.11-orange)
@@ -109,15 +109,15 @@ Checks whether something is intercepting your network:
 
 ## 🚀 Usage
 
-### Install (recommended)
-Download **NetVeil_X.X.X_x64-setup.exe** from [Releases](https://github.com/Extreme159/NetVeil/releases/latest):
+### Windows Installer (recommended)
+Download the **NetVeil_X.Y.Z_x64-setup.exe** installer for the published version from [Releases](https://github.com/Extreme159/NetVeil/releases) (X.Y.Z is the version placeholder):
 
-1. Download and run the installer
-2. Launch NetVeil — for ICMP ping, run as administrator
+1. Download and run the NSIS installer
+2. Launch the installed NetVeil app; **Run as administrator** for ICMP ping
 3. In the Dashboard, pick a diagnosis: **Quick**, **Gaming**, or **Advanced**
 4. View results with letter grades and explanations, optionally save as PDF
 
-> WebView2 comes preinstalled on Windows 10/11.
+> This is an installer, not a portable executable. NetVeil uses WebView2.
 
 ### Build from Source
 
@@ -129,16 +129,16 @@ cd ui && npm install && cd ..
 npx tauri dev
 ```
 
-**Requirements:**
-- Node.js 18+
-- Rust 1.75+
+**Build environment** (CI uses Node 20 and Rust stable; these are not verified minimum versions):
+- Node.js 20+ (CI: 20)
+- Rust stable
 - Windows 10/11 (Linux/macOS support planned)
 
-### Build an Installer
+### NSIS Installer Build
 
 ```powershell
 npx tauri build --bundles nsis
-# Output: src-tauri/target/release/bundle/nsis/NetVeil_X.X.X_x64-setup.exe
+# Output: src-tauri/target/release/bundle/nsis/*-setup.exe
 ```
 
 ---
@@ -147,7 +147,7 @@ npx tauri build --bundles nsis
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 19, TypeScript 5.9, Vite 8 |
+| Frontend | React 19, TypeScript 6.0, Vite 8 |
 | Styling | Tailwind 4 + custom glass/dark CSS |
 | Backend | Rust 2021, Tokio async |
 | Native bridge | Tauri 2.11, WebView2 |
@@ -177,7 +177,7 @@ netveil/
 │   ├── wifi.rs / wifi_scan.rs  # Wi-Fi info + channel scan (2.4/5/6 GHz)
 │   ├── network_stability.rs    # Background drop/RTT monitor + tray
 │   ├── twitch_test.rs / twitch_rtmp.rs  # Twitch stream test (RTMP ingest)
-│   ├── voip.rs                 # VoIP quality assessment
+│   ├── voip_test.rs            # VoIP quality assessment
 │   ├── lan_scanner.rs          # Local network device scan
 │   ├── lan_speed.rs            # Local network throughput
 │   ├── db.rs                   # SQLite local data (telemetry, drop log)
@@ -188,7 +188,6 @@ netveil/
 │   ├── components/tabs/        # One tab component per tool
 │   ├── components/             # Sidebar, TopBar, ConnectionBar, SpeedGauge, GradeBox...
 │   └── lib/                    # i18n TR/EN, icons, PDF report, helpers
-├── server/                     # netveil.net server code (Rust + Axum)
 ├── assets/png/                 # Brand logo (app icon, favicon, mark)
 └── scripts/
     └── bump-version.mjs        # Syncs version files
@@ -203,16 +202,16 @@ netveil/
 ```bash
 npx tauri dev        # Tauri dev (Rust hot reload + Vite HMR)
 npm run build        # UI production build
-npx tauri build --bundles nsis  # NSIS installer (NetVeil_X.X.X_x64-setup.exe)
-npm run bump         # Patch: 0.9.x → 0.9.(x+1)
-npm run bump feature # Minor: 0.9.x → 0.10.x
-npm run bump major   # Major: 0.x.x → 1.0.0
+npx tauri build --bundles nsis  # Windows NSIS installer
+npm run bump         # Patch: 0.7.10 → 0.7.11 (beta patch starts at 10)
+npm run bump:minor   # Minor: 0.7.x → 0.8.10
+npm run bump:major   # Script behavior: 0.x.x → 1.0.10 (not the final 1.0.0 target)
 ```
 
 ### Architecture Notes
 
 **Version synchronization:**
-`package.json`, `ui/package.json`, `tauri.conf.json`, `Cargo.toml`, `README.md` and server `/version` — all updated together with `npm run bump`. Version in UI shown in **Settings** (source: `package.json`).
+`npm run bump` updates seven local files: `package.json`, `ui/package.json`, `package-lock.json`, `ui/package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and the `README.md` badge. Only root package versions change in the lockfiles. The UI version is shown in **Settings** (source: `ui/package.json`).
 
 **`dlog!` macro:**
 Defined in `lib.rs`. `println!` in debug build, no-op in release → no CMD window.
@@ -259,7 +258,7 @@ NetVeil follows an **open-core** model:
 - **This repository** contains the full **free core** of NetVeil — Quick & Gaming diagnosis, ping/latency, speed test, bufferbloat, Wi-Fi scan, DNS benchmark, IPv6, MTU, traceroute and more. It builds and runs as a complete free application.
 - A set of **Pro tools** (ISP throttle & intervention detection, network stability monitor, CGNAT, DNS leak, VoIP quality, LAN scanner, LAN speed, Twitch RTMP) are part of the commercial edition. Their source is **not** included here; the corresponding modules appear only as placeholder stubs so the open core compiles cleanly.
 
-The official build is a single installer that contains everything and unlocks the Pro tools with a license key — there are **no separate "free" and "pro" downloads**. Building this repository yields the free edition.
+The official build is a single installer that contains everything and unlocks the Pro tools with a license key — there are **no separate "free" and "pro" downloads**. Building this repository yields the free edition. The netveil.net API server is not part of this open-core repository.
 
 Learn more or get Pro at **[netveil.net](https://netveil.net)**.
 

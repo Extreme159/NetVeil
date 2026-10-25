@@ -91,6 +91,23 @@ mod mdns;
 #[cfg(feature = "premium")]
 mod lan_speed;
 mod license;
+mod remote_list;
+
+/// Windows sistem araçlarının (powershell, netsh, arp, ipconfig) tam yolunu üretir:
+/// `%SystemRoot%\System32\<rel>` (SystemRoot yoksa `C:\Windows`). Çıplak ad kullanımı
+/// PATH / çalışma dizini üzerinden binary hijack'e açık olduğundan tüm çağrılar buradan geçer.
+pub(crate) fn win_system32(rel: &str) -> std::path::PathBuf {
+    let root = std::env::var_os("SystemRoot")
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(r"C:\Windows"));
+    root.join("System32").join(rel)
+}
+
+/// `powershell.exe` tam yolu (`System32\WindowsPowerShell\v1.0`).
+pub(crate) fn powershell_exe() -> std::path::PathBuf {
+    win_system32(r"WindowsPowerShell\v1.0\powershell.exe")
+}
 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -179,6 +196,7 @@ pub fn run() {
         lan_speed::run_lan_speed_test,
         lan_speed::get_local_hostname,
         lan_speed::discover_lan_speed_peers,
+        traceroute::stop_traceroute,
     ]);
 
     #[cfg(not(feature = "premium"))]
@@ -210,6 +228,7 @@ pub fn run() {
         license::activate_license,
         license::validate_license,
         license::deactivate_license,
+        traceroute::stop_traceroute,
     ]);
 
     builder

@@ -46,6 +46,8 @@ pub struct AccessPoint {
     pub channel_width: String,
     pub phy_type: String,
     pub is_connected: bool,
+    /// Rust tarafı tek doğruluk kaynağı: bağlı AP ile aynı fiziksel cihaz / aynı SSID (is_own_ap).
+    pub is_own: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -170,10 +172,15 @@ fn parse_channel_width(ie_data: &[u8]) -> String {
                         }
                     }
                     // EHT Operation (802.11be / Wi-Fi 7)
-                    106 if len >= 5 => {
-                        // op_params[0] bits[2:0] = channel_width
-                        // 0=20, 1=40, 2=80, 3=160, 4=320 MHz
-                        eht_width = Some(data[1] & 0x07);
+                    // data[1] = EHT Operation Parameters (bit0 = EHT Operation Information
+                    // Present), data[2..6] = Basic EHT-MCS And Nss Set (4 bayt), ardindan
+                    // EHT Operation Information: Control(1) CCFS0(1) CCFS1(1).
+                    // Control bits[2:0]: 0=20, 1=40, 2=80, 3=160, 4=320 MHz (5-7 reserved).
+                    106 if len >= 9 && (data[1] & 0x01) != 0 => {
+                        let w = data[6] & 0x07;
+                        if w <= 4 {
+                            eht_width = Some(w);
+                        }
                     }
                     _ => {}
                 }
@@ -231,7 +238,7 @@ struct CurrentConnection {
 }
 
 fn get_current_connection() -> CurrentConnection {
-    let Ok(output) = Command::new("netsh")
+    let Ok(output) = Command::new(crate::win_system32("netsh.exe"))
         .args(["wlan", "show", "interfaces"])
         .no_window()
         .output()
@@ -267,25 +274,56 @@ fn get_current_connection() -> CurrentConnection {
     CurrentConnection { ssid, bssid }
 }
 
-// ── OUI + Aynı fiziksel cihaz tespiti ──────────────────────────────────────
+// ── Aynı fiziksel cihaz tespiti ─────────────────────────────────────────────
 // IEEE 802.11-2020 §11.1.4: Virtual BSS / MBSSID — aynı radyo zinciri.
-// OUI tek başına yetmez: bazı AP'ler multi-SSID'de farklı OUI kullanır
-// (locally administered / random bit set). Ek kural: bağlı olduğumuz SSID
-// ile aynı ismi taşıyan tüm AP'ler hariç tutulur (mesh node / sanal BSS).
-fn oui(bssid: &str) -> &str {
-    if bssid.len() >= 8 { &bssid[..8] } else { bssid }
+// Üretici (OUI) eşitliği sahiplik değildir: komşunun aynı marka router'ı
+// tıkanıklıktan düşmemeli. Bu yüzden OUI yerine dar bir sanal-BSSID kuralı:
+//   - BSSID'nin orta 4 baytı (b1..b4) aynı olmalı;
+//   - ilk bayt aynı VEYA yalnızca bit 1-3'te farklı ve en az birinde locally-administered
+//     biti (0x02) set (multicast biti ikisinde de temiz);
+//     (hostapd/OpenWrt sanal BSS'leri ilk baytı 0x02 | (i<<2) ile türetir);
+//   - son bayt serbest (aynı radyonun farklı BSS / band'ları).
+// Ek kural: bağlı SSID ile aynı ismi taşıyan AP'ler hariç (mesh node / sanal BSS).
+pub(crate) fn parse_bssid(s: &str) -> Option<[u8; 6]> {
+    let mut out = [0u8; 6];
+    let mut n = 0usize;
+    for part in s.trim().split(|c| c == ':' || c == '-') {
+        if n >= 6 || part.len() != 2 {
+            return None;
+        }
+        out[n] = u8::from_str_radix(part, 16).ok()?;
+        n += 1;
+    }
+    if n == 6 { Some(out) } else { None }
 }
 
-fn is_own_ap(ap: &AccessPoint, own_ssid: &str, own_oui: &str) -> bool {
-    oui(&ap.bssid) == own_oui
+/// İki BSSID aynı fiziksel AP'ye (aynı radyo/sanal BSS) ait mi? Bağlı BSSID'nin
+/// kendisi de true döner. Ayrıştırılamayan BSSID → false (hariç tutma yapılmaz).
+pub(crate) fn is_same_device_bssid(a: &str, b: &str) -> bool {
+    let (Some(x), Some(y)) = (parse_bssid(a), parse_bssid(b)) else {
+        return false;
+    };
+    if x[1..5] != y[1..5] {
+        return false;
+    }
+    // Multicast biti ikisinde de temiz; ilk baytlar yalnızca bit 1-3'te (LA biti +
+    // sanal-BSS indeksi) farklılaşabilir ve farklıysa en az birinde LA biti set olmalı.
+    if (x[0] | y[0]) & 0x01 != 0 || (x[0] ^ y[0]) & !0x0E != 0 {
+        return false;
+    }
+    x[0] == y[0] || ((x[0] | y[0]) & 0x02) != 0
+}
+
+fn is_own_ap(ap: &AccessPoint, own_ssid: &str, own_bssid: &str) -> bool {
+    is_same_device_bssid(&ap.bssid, own_bssid)
         || (!own_ssid.is_empty() && ap.ssid == own_ssid)
 }
 
 // ── Congestion Score ──────────────────────────────────────────────────────────
-fn congestion_24(aps: &[AccessPoint], ch: u32, own_ssid: &str, own_oui: &str) -> u32 {
+fn congestion_24(aps: &[AccessPoint], ch: u32, own_ssid: &str, own_bssid: &str) -> u32 {
     aps.iter()
         .filter(|ap| ap.band == "2.4 GHz")
-        .filter(|ap| !is_own_ap(ap, own_ssid, own_oui))
+        .filter(|ap| !is_own_ap(ap, own_ssid, own_bssid))
         .filter(|ap| (ap.channel as i32 - ch as i32).abs() <= 4)
         .map(|ap| {
             let base = (ap.rssi + 100).max(0) as u32;
@@ -297,20 +335,20 @@ fn congestion_24(aps: &[AccessPoint], ch: u32, own_ssid: &str, own_oui: &str) ->
         .sum()
 }
 
-fn congestion_5_6(aps: &[AccessPoint], band: &str, ch: u32, own_ssid: &str, own_oui: &str) -> u32 {
+fn congestion_5_6(aps: &[AccessPoint], band: &str, ch: u32, own_ssid: &str, own_bssid: &str) -> u32 {
     aps.iter()
         .filter(|ap| ap.band == band && ap.channel == ch)
-        .filter(|ap| !is_own_ap(ap, own_ssid, own_oui))
+        .filter(|ap| !is_own_ap(ap, own_ssid, own_bssid))
         .map(|ap| (ap.rssi + 100).max(0) as u32)
         .sum()
 }
 
 // 5 GHz 20 MHz öneri skoru: AP'nin bonding grubunu da hesaba katar.
 // CH40'ı değerlendirirken 80 MHz AP [36,40,44,48]'in CH40'ı işgal ettiğini görür.
-fn congestion_5_20(aps: &[AccessPoint], ch: u32, own_ssid: &str, own_oui: &str) -> u32 {
+fn congestion_5_20(aps: &[AccessPoint], ch: u32, own_ssid: &str, own_bssid: &str) -> u32 {
     aps.iter()
         .filter(|ap| ap.band == "5 GHz")
-        .filter(|ap| !is_own_ap(ap, own_ssid, own_oui))
+        .filter(|ap| !is_own_ap(ap, own_ssid, own_bssid))
         .filter(|ap| {
             let width: u32 = if ap.channel_width.starts_with("160") { 160 }
                 else if ap.channel_width.starts_with("80") { 80 }
@@ -356,8 +394,38 @@ fn bonding_group_5(primary: u32, width_mhz: u32) -> Vec<u32> {
     vec![primary]
 }
 
-fn congestion_group(aps: &[AccessPoint], band: &str, group: &[u32], own_ssid: &str, own_oui: &str) -> u32 {
-    group.iter().map(|&ch| congestion_5_6(aps, band, ch, own_ssid, own_oui)).sum()
+fn congestion_group(aps: &[AccessPoint], band: &str, group: &[u32], own_ssid: &str, own_bssid: &str) -> u32 {
+    group.iter().map(|&ch| congestion_5_6(aps, band, ch, own_ssid, own_bssid)).sum()
+}
+
+// Bonding "STAY" karar
+// Mevcut kanalin GRUBU temizse (skor 0) veya en iyi alternatif HYSTERESIS kadar
+// daha iyi degilse mevcut grubun primary'si korunur; aksi halde en iyi alternatif.
+fn bonded_recommendation(
+    aps: &[AccessPoint],
+    ch_now: u32,
+    width_mhz: u32,
+    primaries: &[u32],
+    best: (u32, u32),
+    own_ssid: &str,
+    own_bssid: &str,
+) -> u32 {
+    if ch_now == 0 {
+        return best.0;
+    }
+    let Some(cur_primary) = primaries
+        .iter()
+        .copied()
+        .find(|&p| bonding_group_5(p, width_mhz).contains(&ch_now))
+    else {
+        return best.0;
+    };
+    let cur_score = congestion_group(aps, "5 GHz", &bonding_group_5(cur_primary, width_mhz), own_ssid, own_bssid);
+    if cur_score == 0 || best.1.saturating_add(HYSTERESIS) > cur_score {
+        cur_primary
+    } else {
+        best.0
+    }
 }
 
 
@@ -367,7 +435,7 @@ const HYSTERESIS: u32 = 15;
 
 // ── Öneri Algoritması — tüm aktif bandlar ────────────────────────────────────
 // Bağlı SSID olsa da olmasa da her aktif band için öneri üretir.
-// current_bssid: OUI hesabı için kullanılır; boşsa hariç tutma yapılmaz.
+// current_bssid: aynı cihaz (sanal BSSID) hariç tutması için kullanılır; boşsa BSSID bazlı hariç tutma yapılmaz.
 
 fn build_recommendations(
     aps: &[AccessPoint],
@@ -376,7 +444,7 @@ fn build_recommendations(
     current_bssid: &str,
     current_ssid: &str,
 ) -> Vec<ChannelRecommendation> {
-    let own_oui = oui(current_bssid);
+    let own_bssid = current_bssid;
     let own_ssid = current_ssid;
     let mut recs = Vec::new();
 
@@ -389,9 +457,9 @@ fn build_recommendations(
         let ch_now = if current_band == "2.4 GHz" { current_ch } else { 0 };
         let candidates = [1u32, 6, 11];
         let best = candidates.iter()
-            .map(|&ch| (ch, congestion_24(aps, ch, own_ssid, own_oui)))
+            .map(|&ch| (ch, congestion_24(aps, ch, own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((1, 0));
-        let current_score = if ch_now > 0 { congestion_24(aps, ch_now, own_ssid, own_oui) } else { 0 };
+        let current_score = if ch_now > 0 { congestion_24(aps, ch_now, own_ssid, own_bssid) } else { 0 };
         // Don't-churn: temiz (skor=0) veya aday yeterince daha iyi değilse STAY
         let rec_24 = if ch_now > 0 && (current_score == 0 || best.1.saturating_add(HYSTERESIS) > current_score) {
             ch_now
@@ -402,7 +470,7 @@ fn build_recommendations(
             band: "2.4 GHz".to_string(),
             current_channel: ch_now,
             recommended_channel: rec_24,
-            reason: "IEEE 802.11 non-overlapping (1/6/11). Same-OUI APs excluded (virtual BSS).".to_string(),
+            reason: "IEEE 802.11 non-overlapping (1/6/11). Same-device virtual BSSIDs excluded.".to_string(),
             congestion_score: current_score,
         });
     }
@@ -421,23 +489,23 @@ fn build_recommendations(
         let primaries_160: &[u32] = &[36, 100];
 
         let best_20_nondfs = non_dfs.iter()
-            .map(|&ch| (ch, congestion_5_20(aps, ch, own_ssid, own_oui)))
+            .map(|&ch| (ch, congestion_5_20(aps, ch, own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((36, 0));
         let best_20_any = all_5.iter()
-            .map(|&ch| (ch, congestion_5_20(aps, ch, own_ssid, own_oui)))
+            .map(|&ch| (ch, congestion_5_20(aps, ch, own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((36, 0));
         // Non-DFS tie-break: DFS ancak >20 puan avantajlıysa seçilir
         let best_20 = if best_20_any.1 < best_20_nondfs.1.saturating_sub(20) { best_20_any } else { best_20_nondfs };
-        let current_score_20 = if ch_now > 0 { congestion_5_20(aps, ch_now, own_ssid, own_oui) } else { 0 };
+        let current_score_20 = if ch_now > 0 { congestion_5_20(aps, ch_now, own_ssid, own_bssid) } else { 0 };
 
         let best_40 = primaries_40.iter()
-            .map(|&p| (p, congestion_group(aps, "5 GHz", &bonding_group_5(p, 40), own_ssid, own_oui)))
+            .map(|&p| (p, congestion_group(aps, "5 GHz", &bonding_group_5(p, 40), own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((36, 0));
         let best_80 = primaries_80.iter()
-            .map(|&p| (p, congestion_group(aps, "5 GHz", &bonding_group_5(p, 80), own_ssid, own_oui)))
+            .map(|&p| (p, congestion_group(aps, "5 GHz", &bonding_group_5(p, 80), own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((36, 0));
         let best_160 = primaries_160.iter()
-            .map(|&p| (p, congestion_group(aps, "5 GHz", &bonding_group_5(p, 160), own_ssid, own_oui)))
+            .map(|&p| (p, congestion_group(aps, "5 GHz", &bonding_group_5(p, 160), own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((36, 0));
 
         // Don't-churn 20 MHz: temiz veya aday yeterince daha iyi değilse STAY
@@ -446,29 +514,11 @@ fn build_recommendations(
         } else {
             best_20.0
         };
-        // Don't-churn bonding kartları: ch_now bu grubun primary/member'ıysa ve skor 0 ise STAY
-        let rec_5_40 = if ch_now > 0 && bonding_group_5(ch_now, 40).contains(&ch_now)
-            && (best_40.1 == 0 || best_40.1.saturating_add(HYSTERESIS) > congestion_group(aps, "5 GHz", &bonding_group_5(ch_now, 40), own_ssid, own_oui))
-        {
-            // ch_now'un 40MHz grubundaki primary'yi bul
-            primaries_40.iter().copied().find(|&p| bonding_group_5(p, 40).contains(&ch_now)).unwrap_or(best_40.0)
-        } else {
-            best_40.0
-        };
-        let rec_5_80 = if ch_now > 0 && bonding_group_5(ch_now, 80).contains(&ch_now)
-            && (best_80.1 == 0 || best_80.1.saturating_add(HYSTERESIS) > congestion_group(aps, "5 GHz", &bonding_group_5(ch_now, 80), own_ssid, own_oui))
-        {
-            primaries_80.iter().copied().find(|&p| bonding_group_5(p, 80).contains(&ch_now)).unwrap_or(best_80.0)
-        } else {
-            best_80.0
-        };
-        let rec_5_160 = if ch_now > 0 && bonding_group_5(ch_now, 160).contains(&ch_now)
-            && (best_160.1 == 0 || best_160.1.saturating_add(HYSTERESIS) > congestion_group(aps, "5 GHz", &bonding_group_5(ch_now, 160), own_ssid, own_oui))
-        {
-            primaries_160.iter().copied().find(|&p| bonding_group_5(p, 160).contains(&ch_now)).unwrap_or(best_160.0)
-        } else {
-            best_160.0
-        };
+        // Don't-churn bonding kartları: MEVCUT kanalın grubu temizse veya en iyi alternatif
+        // yeterince daha iyi değilse STAY (alternatifin temiz olması karar vermez).
+        let rec_5_40 = bonded_recommendation(aps, ch_now, 40, primaries_40, best_40, own_ssid, own_bssid);
+        let rec_5_80 = bonded_recommendation(aps, ch_now, 80, primaries_80, best_80, own_ssid, own_bssid);
+        let rec_5_160 = bonded_recommendation(aps, ch_now, 160, primaries_160, best_160, own_ssid, own_bssid);
         recs.push(ChannelRecommendation {
             band: "5 GHz".to_string(),
             current_channel: ch_now,
@@ -506,19 +556,19 @@ fn build_recommendations(
         let psc_160: &[u32] = &[5, 37, 69, 101, 133, 165, 197];
 
         let best_6_80 = psc.iter()
-            .map(|&ch| (ch, congestion_5_6(aps, "6 GHz", ch, own_ssid, own_oui)))
+            .map(|&ch| (ch, congestion_5_6(aps, "6 GHz", ch, own_ssid, own_bssid)))
             .min_by_key(|s| s.1).unwrap_or((5, 0));
         // 6 GHz 160 MHz = 4 ardışık PSC kanalı: p, p+16, p+32, p+48
         let best_6_160 = psc_160.iter()
             .map(|&p| {
                 let score = [p, p + 16, p + 32, p + 48].iter()
-                    .map(|&c| congestion_5_6(aps, "6 GHz", c, own_ssid, own_oui))
+                    .map(|&c| congestion_5_6(aps, "6 GHz", c, own_ssid, own_bssid))
                     .sum::<u32>();
                 (p, score)
             })
             .min_by_key(|s| s.1).unwrap_or((5, 0));
 
-        let current_score = if ch_now > 0 { congestion_5_6(aps, "6 GHz", ch_now, own_ssid, own_oui) } else { 0 };
+        let current_score = if ch_now > 0 { congestion_5_6(aps, "6 GHz", ch_now, own_ssid, own_bssid) } else { 0 };
         // Don't-churn 6 GHz 80: temiz veya aday yeterince daha iyi değilse STAY
         let rec_6_80 = if ch_now > 0 && (current_score == 0 || best_6_80.1.saturating_add(HYSTERESIS) > current_score) {
             ch_now
@@ -528,7 +578,7 @@ fn build_recommendations(
         // Don't-churn 6 GHz 160: current_score 0 veya aday grubun skoru yeterli avantaj sağlamıyorsa STAY
         let current_score_6_160 = if ch_now > 0 {
             [ch_now, ch_now.saturating_add(16), ch_now.saturating_add(32), ch_now.saturating_add(48)]
-                .iter().map(|&c| congestion_5_6(aps, "6 GHz", c, own_ssid, own_oui)).sum::<u32>()
+                .iter().map(|&c| congestion_5_6(aps, "6 GHz", c, own_ssid, own_bssid)).sum::<u32>()
         } else { 0 };
         let rec_6_160 = if ch_now > 0 && (current_score_6_160 == 0 || best_6_160.1.saturating_add(HYSTERESIS) > current_score_6_160) {
             psc_160.iter().copied().find(|&p| {
@@ -541,7 +591,7 @@ fn build_recommendations(
             band: "6 GHz".to_string(),
             current_channel: ch_now,
             recommended_channel: rec_6_80,
-            reason: "80 MHz | IEEE 802.11ax PSC. Same-OUI APs excluded.".to_string(),
+            reason: "80 MHz | IEEE 802.11ax PSC. Same-device virtual BSSIDs excluded.".to_string(),
             congestion_score: current_score,
         });
         recs.push(ChannelRecommendation {
@@ -758,6 +808,7 @@ fn run_wifi_scan_sync() -> Result<WifiScanResult, String> {
                 channel_width,
                 phy_type,
                 is_connected,
+                is_own: false,
             });
         }
 
@@ -767,6 +818,10 @@ fn run_wifi_scan_sync() -> Result<WifiScanResult, String> {
     unsafe {
         WlanFreeMemory(iface_list as *mut _);
         WlanCloseHandle(handle, None);
+    }
+
+    for ap in access_points.iter_mut() {
+        ap.is_own = is_own_ap(ap, &current_ssid, &current_bssid);
     }
 
     let recommendations = build_recommendations(&access_points, current_channel, &current_band, &current_bssid, &current_ssid);
@@ -807,7 +862,160 @@ fn run_wifi_scan_sync() -> Result<WifiScanResult, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_channel_width;
+    use super::*;
+
+    fn ap(ssid: &str, bssid: &str, band: &str, channel: u32, rssi: i32) -> AccessPoint {
+        AccessPoint {
+            ssid: ssid.to_string(),
+            bssid: bssid.to_string(),
+            rssi,
+            signal_quality: 0,
+            channel,
+            center_freq_mhz: 0,
+            band: band.to_string(),
+            channel_width: "20 MHz".to_string(),
+            phy_type: String::new(),
+            is_connected: false,
+            is_own: false,
+        }
+    }
+
+    #[test]
+    fn ayni_marka_komsu_tikaniklikta_sayilir() {
+        let own = "18:E8:29:10:20:30";
+        let aps = vec![
+            ap("Home", own, "2.4 GHz", 6, -50),
+            ap("Neighbour", "18:E8:29:AA:BB:CC", "2.4 GHz", 6, -60),
+        ];
+        assert!(!is_same_device_bssid("18:E8:29:AA:BB:CC", own));
+        assert_eq!(congestion_24(&aps, 6, "Home", own), 40);
+    }
+
+    #[test]
+    fn kendi_sanal_bssid_ve_coklu_ssid_haric() {
+        let own = "18:E8:29:10:20:30";
+        // Ayni SSID (mesh/sanal BSS) haric
+        assert!(is_own_ap(&ap("Home", "00:11:22:33:44:55", "2.4 GHz", 6, -50), "Home", own));
+        // Farkli SSID, son bayt farkli (ayni radyo, multi-SSID) haric
+        assert!(is_own_ap(&ap("Guest", "18:E8:29:10:20:31", "2.4 GHz", 6, -50), "Home", own));
+        // Bagli BSSID'nin kendisi haric (SSID bos olsa da)
+        assert!(is_own_ap(&ap("X", own, "2.4 GHz", 6, -50), "", own));
+        // Bagli BSSID bilinmiyorsa BSSID bazli haric tutma yok
+        assert!(!is_own_ap(&ap("Guest", "18:E8:29:10:20:31", "2.4 GHz", 6, -50), "Home", ""));
+    }
+
+    #[test]
+    fn locally_administered_sanal_bssid_ayni_cihaz() {
+        // 1E:E8:29 vs 18:E8:29 (LA biti + hostapd bit'i), orta baytlar ayni
+        assert!(is_same_device_bssid("1E:E8:29:10:20:30", "18:E8:29:10:20:30"));
+        assert!(is_same_device_bssid("1e:e8:29:10:20:3a", "18:E8:29:10:20:30"));
+        // LA biti yok, ilk bayt farkli -> farkli cihaz
+        assert!(!is_same_device_bssid("1C:E8:29:10:20:30", "18:E8:29:10:20:30"));
+        // Sanal-BSS indeksi + LA biti: 18 vs 1E, son bayt farkli -> ayni cihaz
+        assert!(is_same_device_bssid("18:E8:29:10:20:30", "1E:E8:29:10:20:31"));
+        // LA biti set ama ilk bayt bit 1-3 disinda farkli (EA vs 18) -> farkli cihaz
+        assert!(!is_same_device_bssid("18:E8:29:10:20:30", "EA:E8:29:10:20:99"));
+        // Multicast biti set -> sahiplik yok
+        assert!(!is_same_device_bssid("19:E8:29:10:20:30", "19:E8:29:10:20:30"));
+        // Orta baytlar farkli -> farkli cihaz
+        assert!(!is_same_device_bssid("1E:E8:29:11:20:30", "18:E8:29:10:20:30"));
+        // Ayristirilamayan girdi
+        assert!(!is_same_device_bssid("", "18:E8:29:10:20:30"));
+        assert!(!is_same_device_bssid("zz", "zz"));
+    }
+
+    fn eht_ie(params: u8, ctrl: u8) -> Vec<u8> {
+        // id=255, len=9: ext(106) params mcs[4] control ccfs0 ccfs1
+        vec![255, 9, 106, params, 0, 0, 0, 0, ctrl, 0, 0]
+    }
+
+    #[test]
+    fn eht_op_genislik() {
+        assert_eq!(parse_channel_width(&eht_ie(0x01, 0)), "20 MHz");
+        assert_eq!(parse_channel_width(&eht_ie(0x01, 2)), "80 MHz");
+        assert_eq!(parse_channel_width(&eht_ie(0x01, 3)), "160 MHz");
+        assert_eq!(parse_channel_width(&eht_ie(0x01, 4)), "320 MHz");
+        // Diger Parameters bitleri (bit1..) kontrol baytini etkilemez
+        assert_eq!(parse_channel_width(&eht_ie(0x0F, 4)), "320 MHz");
+    }
+
+    #[test]
+    fn eht_op_bilgi_yok_veya_kesik_ise_vht_fallback() {
+        let vht = [192u8, 3, 0x01, 0x00, 0x00];
+        // Operation Information Present biti yok: eski kod data[1]&7=4 -> 320 derdi
+        let mut ie = eht_ie(0x04, 4);
+        ie.extend_from_slice(&vht);
+        assert_eq!(parse_channel_width(&ie), "80 MHz");
+        // Kesik (len=8, EHT Operation Information tam degil: CCFS1 yok) -> guvenilmez, fallback
+        let mut cut = vec![255u8, 8, 106, 0x01, 0, 0, 0, 0, 4, 0];
+        cut.extend_from_slice(&vht);
+        assert_eq!(parse_channel_width(&cut), "80 MHz");
+        // Reserved genislik degeri yok sayilir
+        let mut rsv = eht_ie(0x01, 7);
+        rsv.extend_from_slice(&vht);
+        assert_eq!(parse_channel_width(&rsv), "80 MHz");
+    }
+
+    #[test]
+    fn eht_op_kesik_bloblar_panik_etmez() {
+        let full = eht_ie(0x01, 4);
+        // Her kesme noktasi: IE basligindaki len dogru kalsa da govde kesik
+        for cut in 0..=full.len() {
+            let _ = parse_channel_width(&full[..cut]);
+        }
+        // Her len degeri icin (govde sabit): panik yok
+        for len in 0u8..=12 {
+            let mut ie = vec![255u8, len, 106, 0x01, 0, 0, 0, 0, 4, 0, 0];
+            ie.truncate(2 + len as usize);
+            let _ = parse_channel_width(&ie);
+        }
+        assert_eq!(parse_channel_width(&[255, 1, 106]), "20 MHz");
+    }
+
+    fn rec<'a>(recs: &'a [ChannelRecommendation], band: &str) -> &'a ChannelRecommendation {
+        recs.iter().find(|r| r.band == band).unwrap()
+    }
+
+    #[test]
+    fn bonding_stay_mevcut_grup_kirliyse_temiz_alternatife_gec() {
+        let own = "AA:BB:CC:00:00:01";
+        let aps = vec![
+            ap("Home", own, "5 GHz", 36, -50),
+            ap("N1", "10:00:00:00:00:01", "5 GHz", 36, -40),
+            ap("N2", "20:00:00:00:00:02", "5 GHz", 40, -40),
+            ap("N3", "30:00:00:00:00:03", "5 GHz", 44, -40),
+            ap("N4", "40:00:00:00:00:04", "5 GHz", 48, -40),
+            ap("N5", "50:00:00:00:00:05", "5 GHz", 149, -90),
+        ];
+        let recs = build_recommendations(&aps, 36, "5 GHz", own, "Home");
+        // Mevcut 40/80/160 gruplari kirli, temiz alternatif var -> gec
+        assert_eq!(rec(&recs, "5 GHz 40MHz").recommended_channel, 52);
+        assert_eq!(rec(&recs, "5 GHz 80MHz").recommended_channel, 52);
+        assert_eq!(rec(&recs, "5 GHz 160MHz").recommended_channel, 100);
+    }
+
+    #[test]
+    fn bonding_stay_mevcut_grup_temizse_veya_histerezis_icindeyse_kal() {
+        let own = "AA:BB:CC:00:00:01";
+        // Mevcut grup temiz, baska yerler kirli
+        let clean = vec![
+            ap("Home", own, "5 GHz", 36, -50),
+            ap("N1", "10:00:00:00:00:01", "5 GHz", 52, -40),
+            ap("N2", "20:00:00:00:00:02", "5 GHz", 100, -40),
+            ap("N3", "30:00:00:00:00:03", "5 GHz", 149, -40),
+        ];
+        let recs = build_recommendations(&clean, 36, "5 GHz", own, "Home");
+        assert_eq!(rec(&recs, "5 GHz 40MHz").recommended_channel, 36);
+        assert_eq!(rec(&recs, "5 GHz 80MHz").recommended_channel, 36);
+        assert_eq!(rec(&recs, "5 GHz 160MHz").recommended_channel, 36);
+        // Mevcut grupta kucuk gurultu (skor 10 < HYSTERESIS), alternatif temiz -> kal
+        let mild = vec![
+            ap("Home", own, "5 GHz", 44, -50),
+            ap("N1", "10:00:00:00:00:01", "5 GHz", 48, -90),
+        ];
+        let recs = build_recommendations(&mild, 44, "5 GHz", own, "Home");
+        assert_eq!(rec(&recs, "5 GHz 40MHz").recommended_channel, 44);
+    }
 
     #[test]
     fn bos_ve_bozuk_ie_default_20mhz() {

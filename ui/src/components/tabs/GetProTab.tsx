@@ -2,8 +2,8 @@ import { t } from "../../lib/i18n";
 import { useLang } from "../../lib/useLang";
 import type { TabId } from "../../App";
 
-const CHECKOUT_30D = "https://netveil.lemonsqueezy.com/checkout/buy/27285cc3-ccba-4fb5-aff5-f8e65676b889";
-const CHECKOUT_LIFETIME = "https://netveil.lemonsqueezy.com/checkout/buy/9ba2ea85-902c-49e2-a8dc-f331b16596eb";
+const CHECKOUT_30D = "https://shop.netveil.net/checkout/buy/27285cc3-ccba-4fb5-aff5-f8e65676b889";
+const CHECKOUT_LIFETIME = "https://shop.netveil.net/checkout/buy/9ba2ea85-902c-49e2-a8dc-f331b16596eb";
 
 interface Props {
   setActiveTab: (t: TabId) => void;

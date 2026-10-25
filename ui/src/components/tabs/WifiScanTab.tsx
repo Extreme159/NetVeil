@@ -88,12 +88,11 @@ interface ChannelMapProps {
   channels: number[];
   nonOverlapping: number[];
   connectedSsid: string;
-  currentBssid: string;
   band: string;
   staleBssids: Set<string>;
 }
 
-function GaussianChannelMap({ aps, channels, nonOverlapping, band, staleBssids, currentBssid }: ChannelMapProps) {
+function GaussianChannelMap({ aps, channels, nonOverlapping, band, staleBssids }: ChannelMapProps) {
   const W = 900;  // tam container genişliği - SVG %100 width ile scale eder
   const H = 260;
   const PAD_L = 46;
@@ -136,8 +135,10 @@ function GaussianChannelMap({ aps, channels, nonOverlapping, band, staleBssids, 
   const seg2MinF = seg2Chs.length ? chToMhz(seg2Chs[0]) - EDGE_PAD_MHZ : 0;
   const seg2MaxF = seg2Chs.length ? chToMhz(seg2Chs[seg2Chs.length - 1]) + EDGE_PAD_MHZ : 0;
 
-  const allMinF = chToMhz(channels[0]) - EDGE_PAD_MHZ;
-  const allMaxF = chToMhz(channels[channels.length - 1]) + EDGE_PAD_MHZ;
+  // 6 GHz: eksen TUM bandi kapsar (5925-7125 MHz); `channels` (PSC) yalnizca vurgulu tick'tir.
+  // Aksi halde PSC olmayan AP'ler eksen disinda kalip haritadan kayboluyordu (UI-13).
+  const allMinF = band === "6 GHz" ? 5925 : chToMhz(channels[0]) - EDGE_PAD_MHZ;
+  const allMaxF = band === "6 GHz" ? 7125 : chToMhz(channels[channels.length - 1]) + EDGE_PAD_MHZ;
 
   const seg1SpanF = hasSplit ? (seg1MaxF - seg1MinF) || 1 : 0;
   const seg2SpanF = hasSplit ? (seg2MaxF - seg2MinF) || 1 : 0;
@@ -160,6 +161,12 @@ function GaussianChannelMap({ aps, channels, nonOverlapping, band, staleBssids, 
   const chX = (ch: number): number => {
     if (!channels.includes(ch)) return -999;
     return mhzToX(chToMhz(ch));
+  };
+
+  // AP konumu: 6 GHz'de frekansa gore (PSC olmayan kanallar dahil); diger bantlarda kanal tick'ine gore.
+  const apX = (ap: AccessPoint): number => {
+    if (band === "6 GHz") return mhzToX(ap.center_freq_mhz > 0 ? ap.center_freq_mhz : chToMhz(ap.channel));
+    return chX(ap.channel);
   };
 
   const gapX = hasSplit ? PAD_L + seg1SpanF * pxPerMhz : -1;
@@ -310,10 +317,9 @@ function GaussianChannelMap({ aps, channels, nonOverlapping, band, staleBssids, 
       {aps.map((ap, i) => {
         const color = ssidColor[ap.ssid] ?? "#3b82f6";
         const isConn = ap.is_connected;
-        const isOwnAp = !isConn && currentBssid.length >= 8
-          && ap.bssid.slice(0, 8) === currentBssid.slice(0, 8);
+        const isOwnAp = !isConn && ap.is_own;
         const isStale = staleBssids.has(ap.bssid);
-        const cx = chX(ap.channel);
+        const cx = apX(ap);
         if (cx < 0) return null;
         const peakY = rssiToY(ap.rssi);
 
@@ -532,22 +538,16 @@ interface ChannelLoadBarProps {
   aps: AccessPoint[];
   recommended: number;
   current: number;
-  connectedSsid: string;  // aynı SSID'li AP'leri hariç tut
-  currentBssid: string;
 }
 
-function ChannelLoadBar({ band, aps, recommended, current, connectedSsid, currentBssid }: ChannelLoadBarProps) {
+function ChannelLoadBar({ band, aps, recommended, current }: ChannelLoadBarProps) {
   const candidateChannels: number[] =
     band === "5 GHz" ? NON_DFS_5 :
     band === "6 GHz" ? CHANNELS_6_PSC :
     NON_OVERLAPPING_24;
 
-  // Kendi SSID ve OUI'mizi hariç tut (mesh / multi-band / sanal BSS)
-  const ownOui = currentBssid.length >= 8 ? currentBssid.slice(0, 8) : "";
-  const externalAps = aps.filter(ap =>
-    ap.ssid !== connectedSsid &&
-    !(ownOui && ap.bssid.slice(0, 8) === ownOui)
-  );
+  // Kendi AP'lerimizi hariç tut (mesh / multi-band / sanal BSS) — karar Rust'ta (is_own)
+  const externalAps = aps.filter(ap => !ap.is_own);
 
   const scores = candidateChannels.map((ch) => {
     const load = band === "2.4 GHz"
@@ -820,8 +820,6 @@ function ChannelOptimizationCard({ result, bandFilter }: OptimizationCardProps) 
                     aps={result.access_points}
                     recommended={mainRec.recommended_channel}
                     current={mainRec.current_channel}
-                    connectedSsid={result.current_ssid}
-                    currentBssid={result.current_bssid}
                   />
                 </div>
               </>
@@ -930,6 +928,10 @@ export function WifiScanTab() {
   // Silent rescan bildirimi
   const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "done">("idle");
   const scanStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Sessiz (arka plan/rescan) taramanin hatasi: mevcut sonuclari SILMEDEN kucuk bir not olarak gosterilir.
+  const [scanNote, setScanNote] = useState<string | null>(null);
+  // Ust uste binen taramalari (otomatik + manuel) senkron engeller.
+  const scanInFlightRef = useRef(false);
   // Stale BSSID'ler (cache'de var ama son taramada görülmedi)
   const [staleBssids, setStaleBssids] = useState<Set<string>>(new Set());
 
@@ -942,6 +944,7 @@ export function WifiScanTab() {
   const STALE_EVICT_COUNT = 3; // kaç tarama görülmezse at
   type CachedAP = AccessPoint & { missCount: number; stale: boolean };
   const apCacheRef = useRef<Map<string, CachedAP>>(new Map());
+  const scanConnectionRef = useRef<Pick<WifiScanResult, "current_ssid" | "current_bssid"> | null>(null);
   const [verdict, setVerdict] = useState<ModuleVerdict | null>(null);
 
   useEffect(() => {
@@ -985,22 +988,35 @@ export function WifiScanTab() {
   };
 
   const handleScan = async (silent = false) => {
-    if (loading) return;
+    if (loading || scanInFlightRef.current) return;
+    scanInFlightRef.current = true;
     if (silent) {
       setScanStatus("scanning");
     } else {
       setLoading(true);
     }
     setError(null);
+    setScanNote(null);
     try {
       const res = await invoke<WifiScanResult>("run_wifi_scan");
-      // Cache merge: stale AP'leri koru, yenileri ekle
+      // Baglanti bilgisi HER taramayla yenilenir; sonuc + bilgi ayni anda state'e yazilir
+      // (verdict ayni goruntuden hesaplanir). Okunamazsa eski bilgi tutulmaz.
+      const info = await invoke<WifiInfo>("get_wifi_info").catch(() => null);
+      // is_own taramadaki baglantiya aittir; baglanti degisince eski AP'leri tasima.
+      const previousConnection = scanConnectionRef.current;
+      if (previousConnection?.current_ssid !== res.current_ssid ||
+          previousConnection?.current_bssid !== res.current_bssid) {
+        apCacheRef.current.clear();
+      }
+      scanConnectionRef.current = { current_ssid: res.current_ssid, current_bssid: res.current_bssid };
+      // Cache merge: ayni baglantida stale AP'leri koru, yenileri ekle
       const mergedAps = mergeWithCache(res.access_points);
       const mergedResult: WifiScanResult = {
         ...res,
         access_points: mergedAps.map(({ missCount: _m, stale: _s, ...ap }) => ap),
       };
       setResult(mergedResult);
+      setWifi(info);
       // Grafik için stale bilgisini ayrı tut
       setStaleBssids(new Set(
         mergedAps.filter(ap => ap.stale).map(ap => ap.bssid)
@@ -1012,9 +1028,14 @@ export function WifiScanTab() {
         scanStatusTimerRef.current = setTimeout(() => setScanStatus("idle"), 2500);
       }
     } catch (e) {
-      if (!silent) setError(typeof e === "string" ? e : t("wifi_scan_error_fallback"));
+      const msg = typeof e === "string" ? e : t("wifi_scan_error_fallback");
+      if (!silent) setError(msg);
+      else setScanNote(msg);
     } finally {
+      scanInFlightRef.current = false;
       if (!silent) setLoading(false);
+      // Basarisiz sessiz tarama 'scanning'de takili kalip Rescan'i kilitlemesin; basarida 'done' korunur.
+      else setScanStatus(prev => (prev === "scanning" ? "idle" : prev));
     }
   };
 
@@ -1242,6 +1263,11 @@ export function WifiScanTab() {
                 {t("wifi_scan_status_updated")}
               </span>
             )}
+            {scanNote && (
+              <span title={scanNote} style={{ fontSize: 11, color: "#fca5a5", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {t("wifi_scan_failed")}: {scanNote}
+              </span>
+            )}
             <button
               className="btn btn-secondary"
               onClick={() => handleScan(true)}
@@ -1271,7 +1297,6 @@ export function WifiScanTab() {
             channels={channelsForBand(mapBand)}
             nonOverlapping={nonOverlappingForBand(mapBand)}
             connectedSsid={result.current_ssid}
-            currentBssid={result.current_bssid}
             band={mapBand}
             staleBssids={staleBssids}
           />

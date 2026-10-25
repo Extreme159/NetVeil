@@ -12,7 +12,7 @@ import { jsPDF } from "jspdf";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import type { SmartDiagnosis, ModuleVerdict } from "../types";
-import type { TestResults } from "../App";
+import type { TestResults, ReportSnapshot } from "../App";
 import { t } from "./i18n";
 import { INTER_400_B64, INTER_700_B64 } from "./interFont";
 
@@ -51,14 +51,13 @@ function sentiment(grade: string): "pos" | "neu" | "neg" {
   return "neg"; // F veya "-"
 }
 
-let fontLoaded = false;
+// Font VERISI modul-seviyesinde paylasilir (base64 sabitleri), ama kayit HER jsPDF belgesine
+// yapilir: VFS/font tablosu belge basinadir, ikinci+ belgede Inter yoksa Turkce glifler bozulur.
 function ensureFont(doc: jsPDF) {
-  if (fontLoaded) return;
   doc.addFileToVFS("Inter-400.ttf", INTER_400_B64);
   doc.addFont("Inter-400.ttf", "Inter", "normal");
   doc.addFileToVFS("Inter-700.ttf", INTER_700_B64);
   doc.addFont("Inter-700.ttf", "Inter", "bold");
-  fontLoaded = true;
 }
 
 function moduleName(m: ModuleVerdict): string {
@@ -161,7 +160,8 @@ function renderBufferbloat(
   doc.setFont("Inter", "bold"); doc.setFontSize(9); doc.setTextColor(...C.muted);
   const c0 = M + 12, c1 = M + 150, c2 = M + 250, c3 = M + 350, c4 = pageW - M - 14;
   doc.text(t("pdf_lbl_segment"), c0, y);
-  doc.text(t("pdf_lbl_idle"), c1, y); doc.text(t("pdf_lbl_loaded"), c2, y);
+  // Delta = loaded p95 - idle p50 (Bufferbloat sekmesiyle ayni baz); basliklar yuzdeligi acikca belirtir.
+  doc.text(`${t("pdf_lbl_idle")} p50`, c1, y); doc.text(`${t("pdf_lbl_loaded")} p95`, c2, y);
   doc.text("Δ", c3, y); doc.text(t("pdf_lbl_grade"), c4, y, { align: "right" });
   y += 6; doc.setDrawColor(...C.line); doc.setLineWidth(0.8); doc.line(M, y, pageW - M, y); y += 14;
   doc.setFont("Inter", "normal"); doc.setFontSize(9.5);
@@ -170,7 +170,7 @@ function renderBufferbloat(
     const label = s.target === "gateway" ? "PC ↔ Router" : s.target === "wan" ? "PC ↔ WAN" : s.target;
     doc.setTextColor(...C.ink); doc.text(label, c0, y);
     doc.setTextColor(...C.text);
-    doc.text(`${s.idle_p95_ms.toFixed(0)} ms`, c1, y);
+    doc.text(`${s.idle_p50_ms.toFixed(0)} ms`, c1, y);
     doc.text(`${s.loaded_p95_ms.toFixed(0)} ms`, c2, y);
     doc.text(`+${s.delta_ms.toFixed(0)}`, c3, y);
     doc.setTextColor(...g); doc.setFont("Inter", "bold");
@@ -205,6 +205,19 @@ function renderBufferbloat(
 }
 
 /** Ortak yatay-bar grafik. items: [etiket, deger, renk, gosterim-metni]. Yeni y doner. */
+/** Olculemeyen protokol satiri (Error/Pending) kirmizi F cubugu yerine notr "olculemedi" gosterir.
+ *  Satir 0 = baseline; 1..4 = BT/QUIC/WG/OpenVPN. "Blocked (RST)" vb. kisitlama olarak kalir. */
+function throttleRowsNA(
+  th: NonNullable<TestResults["throttle"]>, rows: [string, number, RGB, string][],
+): [string, number, RGB, string][] {
+  const verdicts: (string | null)[] = [null, th.bittorrent_verdict, th.quic_verdict, th.wireguard_verdict, th.openvpn_verdict];
+  return rows.map((r, i) => {
+    const v = verdicts[i];
+    if (v == null || v === "Normal" || v.startsWith("Throttled") || v.startsWith("Blocked")) return r;
+    return [r[0], 0, C.muted, t("throttle_verdict_error")];
+  });
+}
+
 function hBars(
   doc: jsPDF, title: string, items: [string, number, RGB, string][],
   M: number, contentW: number, pageW: number, startY: number,
@@ -247,10 +260,15 @@ function renderInterventionList(
     ["DoH / DoT", isp.doh_dot?.verdict ?? "—"],
     ["Port Access", isp.port_test?.verdict ?? "—"],
     ["AS Blocking", isp.as_blocking?.verdict ?? "—"],
+    ["Captive Portal", isp.captive_portal?.verdict ?? "—"],
+    ["DNSSEC", isp.dnssec?.verdict ?? "—"],
+    ["ECH", isp.ech?.verdict ?? "—"],
   ];
   for (const [name, verdict] of items) {
     // Normal = yesil, Inconclusive = notr, digerleri = kirmizi
-    const col: RGB = verdict === "Normal" ? C.pos : verdict === "Inconclusive" ? C.neu : C.neg;
+    // Validating/Normal = yesil, Inconclusive = notr, Info = bilgi (soluk), digerleri = kirmizi
+    const col: RGB = verdict === "Normal" || verdict === "Validating" ? C.pos
+      : verdict === "Inconclusive" ? C.neu : verdict === "Info" ? C.muted : C.neg;
     doc.setFillColor(...C.card); doc.setDrawColor(...C.line); doc.setLineWidth(0.8);
     doc.roundedRect(M, y, contentW, 26, 4, 4, "FD");
     doc.setFillColor(...col); doc.circle(M + 16, y + 13, 4, "F");
@@ -263,12 +281,49 @@ function renderInterventionList(
   return y + 10;
 }
 
+/** DNS benchmark ham verisi: saglayici basina UDP/DoT/DoH medyan gecikme + not. Yeni y doner. */
+function renderDnsBenchmark(
+  doc: jsPDF, dns: NonNullable<TestResults["dnsBenchmark"]>, M: number, pageW: number, startY: number,
+): number {
+  let y = startY;
+  if (!dns.providers || dns.providers.length === 0) return y;
+  const shown = [...dns.providers].sort((a, b) => a.rank - b.rank).slice(0, 8);
+  doc.setFont("Inter", "bold"); doc.setFontSize(11); doc.setTextColor(...C.muted);
+  doc.text(t("pdf_lbl_dns_providers").toUpperCase(), M, y);
+  y += 16;
+  doc.setFont("Inter", "bold"); doc.setFontSize(9); doc.setTextColor(...C.muted);
+  const colName = M + 12, colUdp = M + 190, colDot = M + 270, colDoh = M + 350, colGrade = pageW - M - 14;
+  doc.text(t("pdf_lbl_provider"), colName, y);
+  doc.text("UDP", colUdp, y); doc.text("DoT", colDot, y); doc.text("DoH", colDoh, y);
+  doc.text(t("pdf_lbl_grade"), colGrade, y, { align: "right" });
+  y += 6;
+  doc.setDrawColor(...C.line); doc.setLineWidth(0.8); doc.line(M, y, pageW - M, y);
+  y += 14;
+  const ms = (p: { reachable: boolean; median_ms: number }) => (p.reachable ? `${p.median_ms.toFixed(0)} ms` : "\u2014");
+  doc.setFont("Inter", "normal"); doc.setFontSize(9.5);
+  for (const p of shown) {
+    const g = GRADE_RGB[p.grade] ?? C.muted;
+    doc.setTextColor(...C.ink); doc.text(p.name, colName, y);
+    doc.setTextColor(...C.text);
+    doc.text(ms(p.udp), colUdp, y); doc.text(ms(p.dot), colDot, y); doc.text(ms(p.doh), colDoh, y);
+    doc.setTextColor(...g); doc.setFont("Inter", "bold");
+    doc.text(p.grade, colGrade, y, { align: "right" }); doc.setFont("Inter", "normal");
+    y += 20;
+  }
+  if (dns.recommended) {
+    doc.setFontSize(9.5); doc.setTextColor(...C.muted);
+    doc.text(`${t("pdf_lbl_dns_recommended")}: ${dns.recommended}`, M, y + 4);
+    y += 18;
+  }
+  return y + 8;
+}
+
 /**
  * Smart Diagnosis + test sonuclarindan 3 bolumlu PDF uretip diske kaydeder.
  */
 export async function exportPdfReport(
   smart: SmartDiagnosis,
-  results: TestResults,
+  results: ReportSnapshot,
 ): Promise<string | null> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   ensureFont(doc);
@@ -390,13 +445,13 @@ export async function exportPdfReport(
       }
     } else if (m.module === "throttle" && results.throttle) {
       const th = results.throttle;
-      y = hBars(doc, t("diag_mod_throttle"), [
+      y = hBars(doc, t("diag_mod_throttle"), throttleRowsNA(th, [
         [t("pdf_lbl_baseline"), th.baseline_mbps, C.accent, `${th.baseline_mbps.toFixed(1)} Mbps`],
         ["BitTorrent", th.bittorrent_mbps, GRADE_RGB[th.bittorrent_verdict === "Normal" ? "A" : "F"], `${th.bittorrent_mbps.toFixed(1)} · ${th.bittorrent_verdict}`],
         ["QUIC", th.quic_mbps, GRADE_RGB[th.quic_verdict === "Normal" ? "A" : "F"], `${th.quic_mbps.toFixed(1)} · ${th.quic_verdict}`],
         ["WireGuard", th.wireguard_mbps, GRADE_RGB[th.wireguard_verdict === "Normal" ? "A" : "F"], `${th.wireguard_mbps.toFixed(1)} · ${th.wireguard_verdict}`],
         ["OpenVPN", th.openvpn_mbps, GRADE_RGB[th.openvpn_verdict === "Normal" ? "A" : "F"], `${th.openvpn_mbps.toFixed(1)} · ${th.openvpn_verdict}`],
-      ], M, contentW, pageW, y);
+      ]), M, contentW, pageW, y);
     } else if (m.module === "isp_intervention" && results.ispIntervention) {
       y = renderInterventionList(doc, results.ispIntervention, M, contentW, pageW, y);
     } else if (m.module === "ipv6" && results.ipv6) {
@@ -422,6 +477,8 @@ export async function exportPdfReport(
       const mosStr = vr.mos != null ? vr.mos.toFixed(2) : "-";
       doc.setFont("Inter", "normal"); doc.setFontSize(9.5); doc.setTextColor(...C.muted);
       doc.text(`MOS: ${mosStr}   RTT: ${vr.rtt_avg_ms}ms   Jitter: ${vr.jitter_ms}ms   Loss: ${vr.loss_pct}%`, M, y); y += 16;
+    } else if (m.module === "dns_benchmark" && results.dnsBenchmark) {
+      y = renderDnsBenchmark(doc, results.dnsBenchmark, M, pageW, y);
     } else if (m.module === "wifi" && results.wifi?.connected) {
       const w = results.wifi;
       const sigCol: RGB = w.signal_percent >= 70 ? C.pos : w.signal_percent >= 45 ? C.neu : C.neg;
@@ -437,12 +494,10 @@ export async function exportPdfReport(
         if (!aps) return 0;
         const connected = aps.find(ap => ap.is_connected);
         if (!connected) return 0;
-        const myOui = connected.bssid.length >= 8 ? connected.bssid.slice(0, 8) : "";
         return aps.filter(ap =>
           !ap.is_connected &&
           ap.channel === connected.channel &&
-          (myOui === "" || ap.bssid.slice(0, 8) !== myOui) &&
-          ap.ssid !== connected.ssid &&
+          !ap.is_own &&
           ap.rssi > -85
         ).length;
       })();

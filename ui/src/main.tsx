@@ -1,9 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "./fonts.css";
 import "./index.css";
 import { applyScale } from "./lib/uiScale";
 import { applyContentScale } from "./lib/contentScale";
+import { t } from "./lib/i18n";
 
 // Kaydedilmis UI scale tercihini acilista uygula (zoom + pencere boyutu).
 void applyScale();
@@ -33,7 +35,7 @@ class ErrorBoundary extends React.Component<
           whiteSpace: "pre-wrap",
           fontSize: 13,
         }}>
-          <strong style={{ color: "#f87171", fontSize: 16 }}>⚠ Render Hatası</strong>
+          <strong style={{ color: "#f87171", fontSize: 16 }}>{t("render_error_title")}</strong>
           {"\n\n"}
           {this.state.error.message}
           {"\n\n"}

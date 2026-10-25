@@ -61,13 +61,12 @@ interface SpeedTestTabProps extends TabProps {
   showHistory?: boolean;
 }
 
-export function SpeedTestTab({ results, phase, liveDl, liveUl, liveSpeedPhase, speedServerChoice, setSpeedServerChoice, speedResultCache, showHistory }: SpeedTestTabProps) {
+export function SpeedTestTab({ phase, liveDl, liveUl, liveSpeedPhase, finalDl, speedServerChoice, setSpeedServerChoice, speedResultCache, showHistory }: SpeedTestTabProps) {
   const [activePhase, setActivePhase] = useState<Phase>("download");
   const [smoothDl, setSmoothDl] = useState(0);
   const [smoothUl, setSmoothUl] = useState(0);
   const [peakDl, setPeakDl] = useState(0);
   const [peakUl, setPeakUl] = useState(0);
-  const { bufferbloat } = results;
 
   const isSpeedtestRunning = phase === "running_speedtest";
   const isRunning = phase === "running_speedtest" || phase === "running_bufferbloat";
@@ -102,11 +101,14 @@ export function SpeedTestTab({ results, phase, liveDl, liveUl, liveSpeedPhase, s
   const cachedDl     = cachedResult?.dl ?? 0;
   const cachedUl     = cachedResult?.ul ?? 0;
   const cachedServer = cachedResult?.server ?? null;
+  const cachedPing   = cachedResult?.ping ?? null;
 
-  // Gösterge değerleri: live çalışırken smooth, bittikten sonra cache'den
-  const dl = isSpeedtestRunning ? smoothDl : cachedDl;
+  // Gösterge değerleri: live çalışırken smooth; download fazi bitince final (p90) kilitli deger
+  // (upload sirasinda/sonrasinda degismez); test tamamen bitince cache'den.
+  const dl = isSpeedtestRunning ? (finalDl ?? smoothDl) : cachedDl;
   const ul = isSpeedtestRunning ? smoothUl : cachedUl;
-  const idleLat = bufferbloat?.idle_latency_ms ?? results.speedPing ?? 0;
+  // Ping de ayni sunucu-anahtarli hiz kaydindan okunur (UI-07); bufferbloat idle gecikmesi KULLANILMAZ.
+  const pingMs = cachedPing;
 
   // Upload sırasında DL gauge'u koru (sıfırlama), sadece UL fazda UL gauge sıfırlanmasın
   const displayDl = dl;
@@ -152,9 +154,9 @@ export function SpeedTestTab({ results, phase, liveDl, liveUl, liveSpeedPhase, s
       </div>
 
       <div className="speed-stats">
-        <MiniMetric iconKey="Down" label={t("stat_download")} value={dl.toFixed(1)} unit="Mbps" color="#22d3ee" />
-        <MiniMetric iconKey="Up"   label={t("stat_upload")}   value={ul.toFixed(1)}  unit="Mbps" color="#a78bfa" />
-        <MiniMetric iconKey="Bolt" label={t("stat_ping")}     value={idleLat.toFixed(0)} unit="ms" color="#22c55e" />
+        <MiniMetric iconKey="Down" label={t("stat_download")} value={!isSpeedtestRunning && !cachedResult ? "\u2014" : dl.toFixed(1)} unit="Mbps" color="#22d3ee" />
+        <MiniMetric iconKey="Up"   label={t("stat_upload")}   value={!isSpeedtestRunning && !cachedResult ? "\u2014" : ul.toFixed(1)}  unit="Mbps" color="#a78bfa" />
+        <MiniMetric iconKey="Bolt" label={t("stat_ping")}     value={pingMs != null ? pingMs.toFixed(0) : "\u2014"} unit="ms" color="#22c55e" />
         <MiniMetric
           iconKey="Globe"
           label={t("stat_server")}
@@ -162,6 +164,20 @@ export function SpeedTestTab({ results, phase, liveDl, liveUl, liveSpeedPhase, s
           sub={cachedServer ? (cachedServer.startsWith("netveil") ? t("speed_srv_netveil_sub") : t("speed_cf_cdn")) : "—"}
           color="#22d3ee"
         />
+      </div>
+
+      <div className="speed-note-row" style={{
+        marginTop: 12,
+        padding: "10px 14px",
+        borderRadius: 10,
+        background: "var(--card-bg, rgba(255,255,255,0.03))",
+        border: "1px solid var(--card-border, rgba(255,255,255,0.06))",
+        display: "flex", alignItems: "flex-start", gap: 8,
+      }}>
+        <Icon.Idea size={14} style={{ color: "var(--text-muted, #8b8b9e)", flexShrink: 0, marginTop: 2 }} />
+        <span style={{ fontSize: 11, lineHeight: 1.5, color: "var(--text-muted, #8b8b9e)" }}>
+          {t("speed_measure_note")}
+        </span>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { t } from "./lib/i18n";
 import { Icon } from "./lib/icons";
 import { useLang } from "./lib/useLang";
@@ -44,6 +44,7 @@ import { LanScannerTab } from "./components/tabs/LanScannerTab";
 import { LanSpeedTab } from "./components/tabs/LanSpeedTab";
 import { GetProTab } from "./components/tabs/GetProTab";
 import { HistoryView } from "./components/HistoryView";
+import { TestGuardContext, type TestGuard } from "./components/testGuard";
 
 export type TabId =
   | "dashboard"
@@ -89,6 +90,9 @@ export interface TestResults {
   smart: SmartDiagnosis | null;
   /** Advanced (Full) tani sonucu — Quick'ten AYRI tutulur (biri digerini ezmez). */
   smartFull: SmartDiagnosis | null;
+  /** Advanced tanisinin BASLADIGI/BITTIGI andaki degismez olcum goruntusu — PDF buradan uretilir
+   *  (global `results` sonradan baska testlerle degisse bile rapor tutarli kalir). */
+  smartFullSnapshot: ReportSnapshot | null;
   fps: FpsDiagnosis | null;
   lastRunAt: Date | null;
   speedServer: string | null;
@@ -96,6 +100,9 @@ export interface TestResults {
   speedUl: number | null;
   speedPing: number | null;
 }
+
+/** Advanced tanisi + o tanisinin girdisi olan olcumler (PDF export icin). */
+export type ReportSnapshot = Omit<TestResults, "smartFullSnapshot" | "smartFull" | "smart" | "fps"> & { smartFull: SmartDiagnosis };
 
 /**
  * Tab paneli: icerik HEP mount kalir, sadece gorunurluk degisir.
@@ -143,24 +150,43 @@ export default function App() {
   const [testMode, setTestMode] = useState<"quick" | "full">("quick");
   const [testStartTime, setTestStartTime] = useState<number | null>(null);
   const [totalElapsedMs, setTotalElapsedMs] = useState(0);
-  const isThrottleRunning = useRef(false);
+  // Paylasilan senkron test kilidi (UI-01): ref = gercek kilit, state = yalnizca UI yeniden cizimi.
+  const activeTestRef = useRef<string | null>(null);
+  const [activeTest, setActiveTest] = useState<string | null>(null);
+  const acquireTest = useCallback((id: string) => {
+    if (activeTestRef.current !== null) return false;
+    activeTestRef.current = id;
+    setActiveTest(id);
+    return true;
+  }, []);
+  const releaseTest = useCallback((id: string) => {
+    if (activeTestRef.current !== id) return;
+    activeTestRef.current = null;
+    setActiveTest(null);
+  }, []);
+  const testGuard = useMemo<TestGuard>(
+    () => ({ activeTest, acquire: acquireTest, release: releaseTest }),
+    [activeTest, acquireTest, releaseTest],
+  );
   // Ping sonuçlarını ref'te de tutuyoruz — async fonksiyonlarda stale closure’dan kaçınmak için
   const pingsRef = useRef<ServerPingResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [results, setResults] = useState<TestResults>({
-    nics: null, wifi: null, wifiScan: null, pings: null, bufferbloat: null, throttle: null, ispIntervention: null, ipv6: null, cgnat: null, mtu: null, voip: null, dnsBenchmark: null, smart: null, smartFull: null, fps: null, lastRunAt: null, speedServer: null, speedDl: null, speedUl: null, speedPing: null,
+    nics: null, wifi: null, wifiScan: null, pings: null, bufferbloat: null, throttle: null, ispIntervention: null, ipv6: null, cgnat: null, mtu: null, voip: null, dnsBenchmark: null, smart: null, smartFull: null, smartFullSnapshot: null, fps: null, lastRunAt: null, speedServer: null, speedDl: null, speedUl: null, speedPing: null,
   });
   const [liveDl, setLiveDl] = useState(0);
   const [liveUl, setLiveUl] = useState(0);
   const [liveSpeedPhase, setLiveSpeedPhase] = useState<"download" | "upload" | null>(null);
+  // Download fazi bitince final (p90) deger burada kilitlenir -> upload sirasinda/sonrasinda degismez.
+  const [finalDl, setFinalDl] = useState<number | null>(null);
   const [speedServerChoice, setSpeedServerChoice] = useState<"cloudflare" | "netveil">("cloudflare");
   const [bufferbloatServerChoice, setBufferbloatServerChoice] = useState<"cloudflare" | "netveil">("cloudflare");
   // Kaynak-bazli bufferbloat sonuc cache'i: iki sunucunun sonucu ayri saklanir,
   // ust secici degisince ilgili kaynagin tamamlanmis sonucu gosterilir (karsilastirma).
   const [bufferbloatCache, setBufferbloatCache] = useState<Record<string, BufferbloatResult>>({});
   // Her sunucu için ayrı sonucu sakla — geçiş yapınca karlaştırma yapılabilsin
-  const [speedResultCache, setSpeedResultCache] = useState<Record<string, { dl: number; ul: number; ping: number; server: string }>>({});
+  const [speedResultCache, setSpeedResultCache] = useState<Record<string, { dl: number; ul: number; ping: number | null; server: string }>>({});
   const [topology, setTopology] = useState<TopologyInfo | null>(null);
   const [topoLoading, setTopoLoading] = useState(true);
   // Guncelleme durumu — tek kaynak (check_for_update bir kez). Dashboard banner +
@@ -178,10 +204,11 @@ export default function App() {
 
   // PDF raporu disa aktar — Advanced (Full) sonucundan (TopBar'dan tetiklenir).
   const onExportPdf = async () => {
-    if (!results.smartFull) return;
+    const snap = results.smartFullSnapshot;
+    if (!snap) return;
     setPdfBusy(true);
     try {
-      await exportPdfReport(results.smartFull, results);
+      await exportPdfReport(snap.smartFull, snap);
     } catch (e) {
       console.error("[pdf] export hatasi:", e);
     } finally {
@@ -293,8 +320,14 @@ export default function App() {
         setLiveSpeedPhase("upload");
       }
     });
+    // Download fazi bitince final (p90) degeri kilitle -> upload sonrasi rakam degismesin.
+    const unlistenPhaseDone = listen<SpeedProgress>("speedtest:phase_done", (event) => {
+      const p = event.payload;
+      if (p.phase === "download") setFinalDl(p.mbps);
+    });
     return () => {
       void unlisten.then(fn => fn());
+      void unlistenPhaseDone.then(fn => fn());
     };
   }, []);
 
@@ -356,26 +389,47 @@ export default function App() {
   // SERVER_BUSY (sunucu IP-kilidi: ayni anda 1 kullanici) hatasini kullanici dostu
   // i18n mesajina cevirir; diger hatalari oldugu gibi gosterir.
   const formatError = (e: unknown): string => {
+    type TKey = Parameters<typeof t>[0];
     const s = String(e);
-    return s.includes("SERVER_BUSY") ? t("err_server_busy") : s;
+    if (s.includes("SERVER_BUSY")) return t("err_server_busy");
+    // Backend kararli hata kodlari (Rust) -> yerellestirilmis mesaj.
+    if (s.includes("UPLOAD_UNCONFIRMED")) return t("err_upload_unconfirmed");
+    const noData = s.match(/NO_DATA:([a-z_]+)/);
+    if (noData) return t("err_no_data").replace("{phase}", t(`err_phase_${noData[1]}` as TKey));
+    const bb = s.match(/BB_(SAMPLES|PROBES):([a-z]+):(\d+):(\d+)/);
+    if (bb) {
+      return t(bb[1] === "SAMPLES" ? "err_bb_samples" : "err_bb_probes")
+        .replace("{phase}", t(`err_bb_phase_${bb[2]}` as TKey))
+        .replace("{got}", bb[3]).replace("{need}", bb[4]);
+    }
+    return s;
+  };
+
+  // Tum hiz uretecleri (tek test / Quick / Full) AYNI sunucu-anahtarli kaydi yazar (UI-07):
+  // Speed sekmesi dl/ul/ping'i bu kayittan okur.
+  const recordSpeed = (key: "cloudflare" | "netveil", sp: SpeedTestResult) => {
+    setSpeedResultCache(prev => ({ ...prev, [key]: { dl: sp.download_mbps, ul: sp.upload_mbps, ping: sp.ping_ms, server: sp.server } }));
+    setResults(r => ({ ...r, speedServer: sp.server, speedDl: sp.download_mbps, speedUl: sp.upload_mbps, speedPing: sp.ping_ms }));
   };
 
   const runSpeedTest = async (serverChoice?: "cloudflare" | "netveil") => {
+    if (!acquireTest("speed")) return;
     setError(null);
     try {
       setPhase("running_speedtest");
-      setLiveDl(0); setLiveUl(0); setLiveSpeedPhase("download");
+      setLiveDl(0); setLiveUl(0); setLiveSpeedPhase("download"); setFinalDl(null);
       const speed = await invoke<SpeedTestResult>("run_speed_test", { server: serverChoice ?? null });
       setLiveSpeedPhase(null);
-      const key = serverChoice ?? "cloudflare";
-      setSpeedResultCache(prev => ({ ...prev, [key]: { dl: speed.download_mbps, ul: speed.upload_mbps, ping: speed.ping_ms, server: speed.server } }));
-      setResults(r => ({ ...r, speedServer: speed.server, speedDl: speed.download_mbps, speedUl: speed.upload_mbps, speedPing: speed.ping_ms, lastRunAt: new Date() }));
+      recordSpeed(serverChoice ?? "cloudflare", speed);
+      setResults(r => ({ ...r, lastRunAt: new Date() }));
       saveTestRun("speed", { dl: speed.download_mbps, ul: speed.upload_mbps, ping: speed.ping_ms, jitter: speed.jitter_ms, server: speed.server }, null, null);
       setPhase("done");
     } catch (e: unknown) { setError(formatError(e)); setPhase("error"); }
+    finally { releaseTest("speed"); }
   };
 
   const runPingServices = async () => {
+    if (!acquireTest("ping-services")) return;
     setError(null);
     try {
       setPhase("running_ping");
@@ -388,9 +442,11 @@ export default function App() {
       savePingHistory("services");
       setPhase("done");
     } catch (e: unknown) { setError(String(e)); setPhase("error"); }
+    finally { releaseTest("ping-services"); }
   };
 
   const runPingGames = async () => {
+    if (!acquireTest("ping-games")) return;
     setError(null);
     try {
       setPhase("running_ping");
@@ -403,27 +459,26 @@ export default function App() {
       savePingHistory("games");
       setPhase("done");
     } catch (e: unknown) { setError(String(e)); setPhase("error"); }
+    finally { releaseTest("ping-games"); }
   };
 
   const runBufferbloat = async (serverChoice?: "cloudflare" | "netveil") => {
+    if (!acquireTest("bufferbloat")) return;
     setError(null);
     try {
       setPhase("running_bufferbloat");
-      const rawBuffer = await invoke<BufferbloatResult>("run_bufferbloat_test", { server: serverChoice ?? null });
-      const bufferbloat: BufferbloatResult = {
-        ...rawBuffer,
-        download_mbps: results.speedDl ?? rawBuffer.download_mbps,
-        upload_mbps: results.speedUl ?? rawBuffer.upload_mbps,
-      };
+      const bufferbloat = await invoke<BufferbloatResult>("run_bufferbloat_test", { server: serverChoice ?? null });
       const key = serverChoice ?? "cloudflare";
       setBufferbloatCache(prev => ({ ...prev, [key]: bufferbloat }));
       setResults(r => ({ ...r, bufferbloat, lastRunAt: new Date() }));
       saveTestRun("bufferbloat", { idle: bufferbloat.idle_latency_ms, loaded: bufferbloat.loaded_latency_ms, delta: bufferbloat.latency_delta_ms, grade: bufferbloat.grade }, null, bufferbloat.grade);
       setPhase("done");
     } catch (e: unknown) { setError(formatError(e)); setPhase("error"); }
+    finally { releaseTest("bufferbloat"); }
   };
 
   const runIpv6Test = async () => {
+    if (!acquireTest("ipv6")) return;
     setError(null);
     setResults(r => ({ ...r, ipv6: null }));
     try {
@@ -434,10 +489,13 @@ export default function App() {
     } catch (e: unknown) {
       setError(String(e));
       setPhase("done");
+    } finally {
+      releaseTest("ipv6");
     }
   };
 
   const runIspInterventionTest = async () => {
+    if (!acquireTest("isp-intervention")) return;
     setError(null);
     setResults(r => ({ ...r, ispIntervention: null }));
     try {
@@ -448,15 +506,14 @@ export default function App() {
     } catch (e: unknown) {
       setError(String(e));
       setPhase("done");
+    } finally {
+      releaseTest("isp-intervention");
     }
   };
 
   const runThrottleTest = async () => {
-    // Guard: stale closure'dan korunmak için useRef kullan
-    if (isThrottleRunning.current || phase.startsWith("running_")) {
-      return;
-    }
-    isThrottleRunning.current = true;
+    // Paylasilan senkron kilit (stale closure'dan bagimsiz)
+    if (!acquireTest("throttle")) return;
     setError(null);
     // Önceki sonucu temizle — yoksa ThrottleTab live state yerine eski result'u gösterir
     setResults(r => ({ ...r, throttle: null }));
@@ -464,15 +521,15 @@ export default function App() {
       setPhase("running_throttle" as TestPhase);
       const throttle = await invoke<ThrottleTestResult>("run_throttle_test");
       setResults(r => ({ ...r, throttle, lastRunAt: new Date() }));
-      saveTestRun("throttle", { baseline: throttle.baseline_mbps, bt: throttle.bittorrent_mbps, quic: throttle.quic_mbps, wg: throttle.wireguard_mbps, ovpn: throttle.openvpn_mbps, bt_v: throttle.bittorrent_verdict, quic_v: throttle.quic_verdict, wg_v: throttle.wireguard_verdict, ovpn_v: throttle.openvpn_verdict }, null, throttle.isp_throttles ? "F" : "A");
+      saveTestRun("throttle", { baseline: throttle.baseline_mbps, bt: throttle.bittorrent_mbps, quic: throttle.quic_mbps, wg: throttle.wireguard_mbps, ovpn: throttle.openvpn_mbps, bt_v: throttle.bittorrent_verdict, quic_v: throttle.quic_verdict, wg_v: throttle.wireguard_verdict, ovpn_v: throttle.openvpn_verdict }, null, throttle.isp_throttles ? "F" : throttle.inconclusive ? null : "A");
       setPhase("done");
     } catch (e: unknown) {
       // Invoke hata verse bile (beklenmedik Rust panic vs.) testi "done" olarak bitir,
       // phase "error" kalırsa TopBar'da buton aktif olup tekrar tetiklenebilir.
-      setError(String(e));
+      setError(formatError(e));
       setPhase("done");
     }
-    finally { isThrottleRunning.current = false; }
+    finally { releaseTest("throttle"); }
   };
 
   // Gaming testi: NIC + WiFi + Ping + Bufferbloat — speed/ISP/IPv6 yok
@@ -481,6 +538,7 @@ export default function App() {
   const runAllTests = async () => {
     // Advanced Diagnosis Pro — lisans yoksa caliStirma, Settings'e (aktivasyon) yonlendir.
     if (!(licenseStatus?.valid ?? false)) { setActiveTab("settings"); return; }
+    if (!acquireTest("full")) return;
     setTestMode("full");
     setTestStartTime(Date.now());
     setError(null);
@@ -490,8 +548,10 @@ export default function App() {
     let finalWifi: WifiInfo | null         = null;
     // finalPings: ping sonuçları pingsRef üzerinden takip edilir
     let finalBloat: BufferbloatResult | null = null;
-    let finalSpeed: SpeedTestResult | null = null;
+    let finalSpeed: SpeedTestResult | null;
     let extraThrottle: ThrottleTestResult | null = null;
+    // Modul bazli hatalar: bir olcum basarisiz olsa da tani devam eder (modul sonucu null kalir).
+    const moduleErrors: string[] = [];
     let extraIsp: import("./types").IspInterventionResult | null = null;
     let extraIpv6: import("./types").Ipv6TestResult | null = null;
     let extraCgnat: import("./types").CgnatResult | null = null;
@@ -516,34 +576,59 @@ export default function App() {
 
       // Hız Testi her zaman yapılır
       setPhase("running_speedtest");
-      setLiveDl(0); setLiveUl(0); setLiveSpeedPhase("download");
-      finalSpeed = await invoke<SpeedTestResult>("run_speed_test", { server: speedServerChoice ?? null });
-      setLiveSpeedPhase(null);
-      const allKey = speedServerChoice ?? "cloudflare";
-      setSpeedResultCache(prev => ({ ...prev, [allKey]: { dl: finalSpeed!.download_mbps, ul: finalSpeed!.upload_mbps, ping: finalSpeed!.ping_ms, server: finalSpeed!.server } }));
-      setResults(r => ({ ...r, speedServer: finalSpeed!.server, speedDl: finalSpeed!.download_mbps, speedUl: finalSpeed!.upload_mbps, speedPing: finalSpeed!.ping_ms }));
+      setLiveDl(0); setLiveUl(0); setLiveSpeedPhase("download"); setFinalDl(null);
+      try {
+        finalSpeed = await invoke<SpeedTestResult>("run_speed_test", { server: speedServerChoice ?? null });
+        setLiveSpeedPhase(null);
+        recordSpeed(speedServerChoice ?? "cloudflare", finalSpeed);
+      } catch (e: unknown) {
+        finalSpeed = null;
+        setLiveSpeedPhase(null);
+        setResults(r => ({ ...r, speedServer: null, speedDl: null, speedUl: null, speedPing: null }));
+        moduleErrors.push(formatError(e));
+      }
 
       // Bufferbloat — her zaman taze olcülür
       setPhase("running_bufferbloat");
-      const rawBuffer = await invoke<BufferbloatResult>("run_bufferbloat_test");
-      finalBloat = { ...rawBuffer, download_mbps: finalSpeed!.download_mbps, upload_mbps: finalSpeed!.upload_mbps };
-      setBufferbloatCache(prev => ({ ...prev, cloudflare: finalBloat! }));
-      setResults(r => ({ ...r, bufferbloat: finalBloat }));
+      try {
+        finalBloat = await invoke<BufferbloatResult>("run_bufferbloat_test");
+        setBufferbloatCache(prev => ({ ...prev, cloudflare: finalBloat! }));
+        setResults(r => ({ ...r, bufferbloat: finalBloat }));
+      } catch (e: unknown) {
+        finalBloat = null;
+        setResults(r => ({ ...r, bufferbloat: null }));
+        moduleErrors.push(formatError(e));
+      }
 
       // ISP Daraltma
       setPhase("running_throttle" as TestPhase);
-      extraThrottle = await invoke<ThrottleTestResult>("run_throttle_test");
-      setResults(r => ({ ...r, throttle: extraThrottle }));
-      saveTestRun("throttle", { baseline: extraThrottle.baseline_mbps, bt: extraThrottle.bittorrent_mbps, quic: extraThrottle.quic_mbps, wg: extraThrottle.wireguard_mbps, ovpn: extraThrottle.openvpn_mbps, bt_v: extraThrottle.bittorrent_verdict, quic_v: extraThrottle.quic_verdict, wg_v: extraThrottle.wireguard_verdict, ovpn_v: extraThrottle.openvpn_verdict }, null, extraThrottle.isp_throttles ? "F" : "A");
+      try {
+        const th = await invoke<ThrottleTestResult>("run_throttle_test");
+        extraThrottle = th;
+        setResults(r => ({ ...r, throttle: th }));
+        // inconclusive = olculemedi: "A" (temiz) olarak kaydedilmez.
+        saveTestRun("throttle", { baseline: th.baseline_mbps, bt: th.bittorrent_mbps, quic: th.quic_mbps, wg: th.wireguard_mbps, ovpn: th.openvpn_mbps, bt_v: th.bittorrent_verdict, quic_v: th.quic_verdict, wg_v: th.wireguard_verdict, ovpn_v: th.openvpn_verdict }, null, th.isp_throttles ? "F" : th.inconclusive ? null : "A");
+      } catch (e: unknown) {
+        setResults(r => ({ ...r, throttle: null }));
+        moduleErrors.push(formatError(e));
+      }
 
       // ISP Müdahale
       setPhase("running_isp_intervention" as TestPhase);
-      extraIsp = await invoke<import("./types").IspInterventionResult>("run_isp_intervention_test");
+      try {
+        extraIsp = await invoke<import("./types").IspInterventionResult>("run_isp_intervention_test");
+      } catch (e: unknown) {
+        moduleErrors.push(`${t("tab_isp_intervention_title")}: ${formatError(e)}`);
+      }
       setResults(r => ({ ...r, ispIntervention: extraIsp }));
 
       // IPv6
       setPhase("running_ipv6" as TestPhase);
-      extraIpv6 = await invoke<import("./types").Ipv6TestResult>("run_ipv6_test");
+      try {
+        extraIpv6 = await invoke<import("./types").Ipv6TestResult>("run_ipv6_test");
+      } catch (e: unknown) {
+        moduleErrors.push(`${t("tab_ipv6_title")}: ${formatError(e)}`);
+      }
       setResults(r => ({ ...r, ipv6: extraIpv6 }));
 
       // CGNAT (Premium) — Smart skoruna dusuk agirlikla katilir
@@ -578,9 +663,9 @@ export default function App() {
         input: {
           nic: finalNics!, wifi: finalWifi!,
           ping_results: pingsForSmart,
-          bufferbloat: finalBloat!,
-          speed_download: finalSpeed!.download_mbps ?? null,
-          speed_upload: finalSpeed!.upload_mbps ?? null,
+          bufferbloat: finalBloat,
+          speed_download: finalSpeed?.download_mbps ?? null,
+          speed_upload: finalSpeed?.upload_mbps ?? null,
           throttle: extraThrottle,
           isp_intervention: extraIsp,
           ipv6: extraIpv6,
@@ -592,7 +677,17 @@ export default function App() {
           twitch: null,
         },
       });
-      setResults(r => ({ ...r, smartFull: smart, lastRunAt: new Date() }));
+      // Rapor goruntusu: bu tanisinin girdisi olan YEREL olcumler (global results sonradan
+      // baska testlerle degisse bile PDF tutarli kalir).
+      const reportSnapshot: ReportSnapshot = {
+        nics: finalNics, wifi: finalWifi, wifiScan, pings: pingsForSmart,
+        bufferbloat: finalBloat, throttle: extraThrottle, ispIntervention: extraIsp,
+        ipv6: extraIpv6, cgnat: extraCgnat, mtu: extraMtu, voip: extraVoip, dnsBenchmark: extraDns,
+        smartFull: smart, lastRunAt: new Date(),
+        speedServer: finalSpeed?.server ?? null, speedDl: finalSpeed?.download_mbps ?? null,
+        speedUl: finalSpeed?.upload_mbps ?? null, speedPing: finalSpeed?.ping_ms ?? null,
+      };
+      setResults(r => ({ ...r, smartFull: smart, smartFullSnapshot: reportSnapshot, lastRunAt: new Date() }));
       // Save full run to DB (best-effort)
       const pingSnap = pingsRef.current;
       saveTestRun("full", {
@@ -604,13 +699,16 @@ export default function App() {
         speed_ping: finalSpeed?.ping_ms,
         bloat_delta: finalBloat?.latency_delta_ms,
         bloat_grade: finalBloat?.grade,
-      }, smart?.general_score?.total ?? null, smart?.general_score?.grade ?? null);
+      }, smart?.general_score?.total ?? null, smart?.general_score?.total != null ? (smart?.general_score?.grade ?? null) : null);
       // Also save individual module records (ping data available via pingsRef)
       saveTestRun("ping", { best: extractBestPingMs(pingSnap), jitter: extractAvgJitterMs(pingSnap), loss: extractAvgLossPct(pingSnap) }, null, null);
+      if (moduleErrors.length > 0) setError(moduleErrors.join(" \u00b7 "));
       setPhase("done");
     } catch (e: unknown) {
-      setError(String(e));
+      setError(formatError(e));
       setPhase("error");
+    } finally {
+      releaseTest("full");
     }
   };
 
@@ -618,10 +716,8 @@ export default function App() {
   // Double-invoke guard: isGamingRunning ref
   // Quick tarama: tek akışta hem genel (run_smart_diagnosis) hem oyun (run_fps_diagnosis)
   // skoru hesaplanır — ikisi de aynı toplanan veriden, pro araçlar null. Toggle yok.
-  const isGamingRunning = useRef(false);
   const runQuickScan = async () => {
-    if (isGamingRunning.current || phase.startsWith("running_")) return;
-    isGamingRunning.current = true;
+    if (!acquireTest("quick")) return;
     setTestMode("quick");
     setTestStartTime(Date.now());
     setError(null);
@@ -641,14 +737,33 @@ export default function App() {
       await invoke<ServerPingResult[]>("ping_game_servers", { category: null });
 
       setPhase("running_speedtest");
-      setLiveDl(0); setLiveUl(0); setLiveSpeedPhase("download");
-      const quickSpeed = await invoke<SpeedTestResult>("run_speed_test", { server: speedServerChoice ?? null });
-      setLiveSpeedPhase(null);
-      setResults(r => ({ ...r, speedDl: quickSpeed.download_mbps, speedUl: quickSpeed.upload_mbps, speedPing: quickSpeed.ping_ms }));
+      setLiveDl(0); setLiveUl(0); setLiveSpeedPhase("download"); setFinalDl(null);
+      // Modul bazli hata: speed/bufferbloat basarisiz olsa da tarama devam eder (sonuc null).
+      const moduleErrors: string[] = [];
+      let quickSpeed: SpeedTestResult | null = null;
+      try {
+        const sp = await invoke<SpeedTestResult>("run_speed_test", { server: speedServerChoice ?? null });
+        quickSpeed = sp;
+        setLiveSpeedPhase(null);
+        recordSpeed(speedServerChoice ?? "cloudflare", sp);
+      } catch (e: unknown) {
+        setLiveSpeedPhase(null);
+        setResults(r => ({ ...r, speedDl: null, speedUl: null, speedPing: null }));
+        moduleErrors.push(formatError(e));
+      }
 
       setPhase("running_bufferbloat");
-      const rawBloat = await invoke<BufferbloatResult>("run_bufferbloat_test");
-      setResults(r => ({ ...r, bufferbloat: rawBloat }));
+      let rawBloat: BufferbloatResult | null = null;
+      try {
+        const bb = await invoke<BufferbloatResult>("run_bufferbloat_test");
+        rawBloat = bb;
+        // Quick/Full sunucu argumansiz calisir -> varsayilan kaynak (cloudflare); kaynak-bazli cache'i de guncelle.
+        setBufferbloatCache(prev => ({ ...prev, cloudflare: bb }));
+        setResults(r => ({ ...r, bufferbloat: bb }));
+      } catch (e: unknown) {
+        setResults(r => ({ ...r, bufferbloat: null }));
+        moduleErrors.push(formatError(e));
+      }
 
       const wifiScan = await invoke<import("./types").WifiScanResult>("run_wifi_scan").catch(() => null);
       setResults(r => ({ ...r, wifiScan }));
@@ -673,8 +788,8 @@ export default function App() {
           nic: nics, wifi,
           ping_results: pingsForQuick,
           bufferbloat: rawBloat,
-          speed_download: quickSpeed.download_mbps ?? null,
-          speed_upload: quickSpeed.upload_mbps ?? null,
+          speed_download: quickSpeed?.download_mbps ?? null,
+          speed_upload: quickSpeed?.upload_mbps ?? null,
           throttle: null, isp_intervention: null,
           ipv6: quickIpv6, cgnat: null, mtu: quickMtu, voip: null,
           wifi_scan: wifiScan, dns_benchmark: quickDns, twitch: null,
@@ -694,12 +809,13 @@ export default function App() {
       });
       setResults(r => ({ ...r, smart, fps, lastRunAt: new Date() }));
 
+      if (moduleErrors.length > 0) setError(moduleErrors.join(" \u00b7 "));
       setPhase("done");
     } catch (e: unknown) {
-      setError(String(e));
+      setError(formatError(e));
       setPhase("error");
     } finally {
-      isGamingRunning.current = false;
+      releaseTest("quick");
     }
   };
 
@@ -718,7 +834,7 @@ export default function App() {
 
   const tabProps = {
     results, phase, testMode, testStartTime, totalElapsedMs, error, setActiveTab, runAllTests, runSpeedTest, runPingServices, runPingGames, runBufferbloat, runThrottleTest, runIspInterventionTest, runIpv6Test,
-    liveDl, liveUl, liveSpeedPhase,
+    liveDl, liveUl, liveSpeedPhase, finalDl,
     speedServerChoice, setSpeedServerChoice, speedResultCache,
     bufferbloatServerChoice, setBufferbloatServerChoice, bufferbloatCache,
     pingTargets, topology, topoLoading, gatewayPing, cfPing, updateInfo,
@@ -739,6 +855,7 @@ export default function App() {
   const head = getTabHeaders()[activeTab];
 
   return (
+    <TestGuardContext.Provider value={testGuard}>
     <div className="app">
       <Sidebar
         activeTab={activeTab}
@@ -782,7 +899,7 @@ export default function App() {
             null
           }
           extraButtons={
-            activeTab === "smart" && results.smartFull ? (
+            activeTab === "smart" && results.smartFullSnapshot ? (
               <button
                 className="btn btn-secondary"
                 type="button"
@@ -865,5 +982,6 @@ export default function App() {
         </div>
       </main>
     </div>
+    </TestGuardContext.Provider>
   );
 }

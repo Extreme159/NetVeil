@@ -25,12 +25,14 @@ export interface TabProps {
   liveUl: number;
   /** Anlık olarak hangi faz ölçülüyor (event'ten gelir). */
   liveSpeedPhase: "download" | "upload" | null;
+  /** Download fazi bitince kilitlenen final (p90) download Mbps; null = henuz bitmedi. */
+  finalDl: number | null;
   speedServerChoice: "cloudflare" | "netveil";
   setSpeedServerChoice: (s: "cloudflare" | "netveil") => void;
   bufferbloatServerChoice: "cloudflare" | "netveil";
   setBufferbloatServerChoice: (s: "cloudflare" | "netveil") => void;
   bufferbloatCache: Record<string, BufferbloatResult>;
-  speedResultCache: Record<string, { dl: number; ul: number; ping: number; server: string }>;
+  speedResultCache: Record<string, { dl: number; ul: number; ping: number | null; server: string }>;
   pingTargets: PingTarget[];
   topology: TopologyInfo | null;
   topoLoading: boolean;

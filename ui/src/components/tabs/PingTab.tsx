@@ -7,6 +7,24 @@ import type { ServerPingResult, PingCategory } from "../../types";
 import { GradeBox } from "../GradeBox";
 import { gameGrade } from "../../lib/helpers";
 import { HistoryView } from "../HistoryView";
+import netflixLogo from "../../assets/brands/netflix.svg";
+import youtubeLogo from "../../assets/brands/youtube.svg";
+import discordLogo from "../../assets/brands/discord.svg";
+import twitchLogo from "../../assets/brands/twitch.svg";
+import spotifyLogo from "../../assets/brands/spotify.svg";
+import cloudflareLogo from "../../assets/brands/cloudflare.svg";
+import googleLogo from "../../assets/brands/google.svg";
+import steamLogo from "../../assets/brands/steam.svg";
+import epicgamesLogo from "../../assets/brands/epicgames.svg";
+import riotgamesLogo from "../../assets/brands/riotgames.svg";
+import playstationLogo from "../../assets/brands/playstation.svg";
+import tiktokLogo from "../../assets/brands/tiktok.svg";
+import redditLogo from "../../assets/brands/reddit.svg";
+import githubLogo from "../../assets/brands/github.svg";
+import telegramLogo from "../../assets/brands/telegram.svg";
+import whatsappLogo from "../../assets/brands/whatsapp.svg";
+import instagramLogo from "../../assets/brands/instagram.svg";
+import facebookLogo from "../../assets/brands/facebook.svg";
 
 type IcoComp = typeof Icon[keyof typeof Icon];
 
@@ -90,6 +108,29 @@ const GROUP_ICONS: Record<GroupKey, IcoComp> = {
   tech:      Icon.Cloud,
 };
 
+/** Brand logos — service name → imported SVG URL (renkli, filtre yok). */
+const BRAND_LOGOS: Record<string, string> = {
+  "Cloudflare": cloudflareLogo,
+  "Google": googleLogo,
+  "YouTube": youtubeLogo,
+  "Facebook": facebookLogo,
+  "Instagram": instagramLogo,
+  "WhatsApp": whatsappLogo,
+  "Netflix": netflixLogo,
+  "Discord": discordLogo,
+  "Twitch": twitchLogo,
+  "Spotify": spotifyLogo,
+  "TikTok": tiktokLogo,
+  "Reddit": redditLogo,
+  "GitHub": githubLogo,
+  "Epic Games": epicgamesLogo,
+  "Riot Games": riotgamesLogo,
+  "PlayStation": playstationLogo,
+  "Telegram": telegramLogo,
+  "Steam": steamLogo,
+  "Steam / Valve (CS2 - DOTA2)": steamLogo,
+};
+
 /** Service adına göre ikon — group başlığı için (monochrome lucide). */
 const SERVICE_ICONS: Record<string, IcoComp> = {
   Cloudflare:     Icon.Cloud,
@@ -114,6 +155,16 @@ function flagFor(region: string): string {
 }
 
 function iconFor(game: string) {
+  const logo = BRAND_LOGOS[game];
+  if (logo) {
+    return (
+      <img
+        src={logo}
+        alt={game}
+        style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0, display: "block" }}
+      />
+    );
+  }
   const Ico = SERVICE_ICONS[game] ?? Icon.Globe;
   return <Ico style={{ width: 14, height: 14, color: "var(--text-muted)" }} />;
 }
@@ -679,6 +730,9 @@ export function PingTab({ results, phase, category, pingTargets, showHistory }: 
           if (!names || names.length === 0) return null;
           return <ServiceGroupSkeleton key={gk} groupKey={gk} names={names} running={isRunning} />;
         })}
+        <p style={{ margin: 0, fontSize: 10, color: "var(--text-muted)", opacity: 0.6, lineHeight: 1.5 }}>
+          {t("trademark_short")}
+        </p>
       </div>
     );
   }

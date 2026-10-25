@@ -31,6 +31,10 @@ pub struct Ipv6ConnectivityInfo {
     pub wan_ipv6: Option<String>,
     pub isp_ipv6: Option<String>,
     pub dns_ipv6_works: bool,
+    /// En az bir IPv6 TCP tasima probu (literal global adres, DNS'siz) basarili oldu mu.
+    /// Eski sonuclarda yok -> serde default (false).
+    #[serde(default)]
+    pub ipv6_transport_works: bool,
     pub connectivity_grade: String, // "Full" | "Partial" | "Tunnel" | "None"
 }
 
@@ -102,8 +106,8 @@ fn classify_address(addr: &str) -> (String, String) {
     } else if (s[0] & 0xffc0) == 0xfe80 {
         ("LinkLocal".into(), "LinkLocal".into())
     } else if (s[0] & 0xfe00) == 0xfc00 {
-        // ULA fc00::/7 — yerel ama "native" davranışlı.
-        ("UniqueLocal".into(), "Native".into())
+        // ULA fc00::/7 — yalnızca yerel; internete yönlendirilmez, "Native" SAYILMAZ.
+        ("UniqueLocal".into(), "UniqueLocal".into())
     } else if s[0] == 0x2001 && s[1] == 0x0000 {
         ("Global".into(), "Teredo".into()) // 2001:0000::/32 (RFC 4380)
     } else if s[0] == 0x2001 && s[1] == 0x0470 {
@@ -136,7 +140,7 @@ fn is_globally_routable_type(addr_type: &str) -> bool {
 
 #[cfg(target_os = "windows")]
 fn ps(cmd: &str) -> String {
-    let Ok(out) = std::process::Command::new("powershell")
+    let Ok(out) = std::process::Command::new(crate::powershell_exe())
         .args(["-NoProfile", "-NonInteractive", "-Command", cmd])
         .creation_flags(CREATE_NO_WINDOW)
         .output() else { return String::new(); };
@@ -253,6 +257,23 @@ async fn fetch_wan_ipv6() -> (Option<String>, Option<String>) {
 
 // ─── DNS IPv6 kontrolü ────────────────────────────────────────────────────────
 
+/// IPv6 tasima probu: DNS'e BAGIMLI OLMADAN literal global IPv6 adreslerine TCP/443 baglantisi.
+/// Cloudflare (2606:4700:4700::1111) ve Google (2001:4860:4860::8888); biri basarili olursa true.
+async fn check_ipv6_transport() -> bool {
+    use tokio::net::TcpStream;
+    let probe = |addr: &'static str| async move {
+        matches!(
+            tokio::time::timeout(Duration::from_secs(4), TcpStream::connect(addr)).await,
+            Ok(Ok(_))
+        )
+    };
+    let (a, b) = tokio::join!(
+        probe("[2606:4700:4700::1111]:443"),
+        probe("[2001:4860:4860::8888]:443"),
+    );
+    a || b
+}
+
 async fn check_dns_ipv6() -> bool {
     let result = tokio::task::spawn_blocking(|| {
         use std::net::ToSocketAddrs;
@@ -284,7 +305,8 @@ async fn get_connectivity_info() -> Ipv6ConnectivityInfo {
         (get_ipv6_addresses(), get_ipv6_gateway())
     }).await.unwrap_or_default();
 
-    let has_ipv6 = addresses.iter().any(|a| a.scope == "Global" || a.scope == "UniqueLocal");
+    // Yalnizca global unicast (2000::/3) "IPv6 internet" sayilir; ULA (fc00::/7) sayilmaz.
+    let has_ipv6 = addresses.iter().any(|a| a.scope == "Global");
     let has_native_ipv6 = addresses.iter().any(|a| a.address_type == "Native");
     let has_tunnel = addresses.iter().any(|a|
         matches!(a.address_type.as_str(), "Teredo" | "6to4" | "ISATAP" | "Tunnel")
@@ -292,6 +314,7 @@ async fn get_connectivity_info() -> Ipv6ConnectivityInfo {
     let has_tunnel_only = has_tunnel && !has_native_ipv6;
 
     let dns_ipv6_works = if has_ipv6 { check_dns_ipv6().await } else { false };
+    let ipv6_transport_works = if has_ipv6 { check_ipv6_transport().await } else { false };
     // IPv6 yoksa WAN sorgusunu atla
     let (mut wan_ipv6, isp_ipv6) = if has_ipv6 { fetch_wan_ipv6().await } else { (None, None) };
 
@@ -304,7 +327,8 @@ async fn get_connectivity_info() -> Ipv6ConnectivityInfo {
             .next();
     }
 
-    let connectivity_grade = if has_native_ipv6 && dns_ipv6_works {
+    // "Full": native + AAAA cozumleme + en az bir basarili IPv6 tasima probu.
+    let connectivity_grade = if has_native_ipv6 && dns_ipv6_works && ipv6_transport_works {
         "Full"
     } else if has_tunnel_only {
         "Tunnel"
@@ -319,7 +343,7 @@ async fn get_connectivity_info() -> Ipv6ConnectivityInfo {
     Ipv6ConnectivityInfo {
         has_ipv6, has_native_ipv6, has_tunnel_only,
         addresses, gateway_v6, wan_ipv6, isp_ipv6,
-        dns_ipv6_works, connectivity_grade,
+        dns_ipv6_works, ipv6_transport_works, connectivity_grade,
     }
 }
 
@@ -347,7 +371,7 @@ fn calculate_quality(conn: &Ipv6ConnectivityInfo) -> Ipv6QualityScore {
         "ipv6_assess_none"
     } else if conn.has_tunnel_only {
         "ipv6_assess_tunnel"
-    } else if !conn.dns_ipv6_works {
+    } else if !conn.dns_ipv6_works || !conn.ipv6_transport_works {
         "ipv6_assess_partial"
     } else {
         "ipv6_assess_good"
@@ -363,7 +387,10 @@ fn calculate_quality(conn: &Ipv6ConnectivityInfo) -> Ipv6QualityScore {
     if conn.has_ipv6 && !conn.dns_ipv6_works {
         recs.push("ipv6_rec_dns_broken".into());
     }
-    if conn.has_native_ipv6 && conn.dns_ipv6_works {
+    if conn.has_ipv6 && !conn.has_tunnel_only && !conn.ipv6_transport_works {
+        recs.push("ipv6_rec_no_transport".into());
+    }
+    if conn.has_native_ipv6 && conn.dns_ipv6_works && conn.ipv6_transport_works {
         recs.push("ipv6_rec_good".into());
     }
 
@@ -418,8 +445,22 @@ mod tests {
 
     #[test]
     fn test_unique_local() {
-        assert_eq!(t("fd00::1"), ("UniqueLocal".into(), "Native".into()));
+        // ULA "Native" DEGIL; globally-routable da sayilmaz.
+        assert_eq!(t("fd00::1"), ("UniqueLocal".into(), "UniqueLocal".into()));
         assert_eq!(t("fc00::1").0, "UniqueLocal");
+        assert_eq!(t("fdff:ffff::1").1, "UniqueLocal");
+        assert!(!is_globally_routable_type(&t("fd12:3456::1").1));
+    }
+
+    #[test]
+    fn test_global_unicast_siniri() {
+        // 2000::/3 sinirlari: 2000::/3 icinde Native; 4000::/ ve 1fff:: global unicast DEGIL
+        assert_eq!(t("2000::1").1, "Native");
+        assert_eq!(t("3fff:ffff::1").1, "Native");
+        assert_eq!(t("4000::1").1, "Unknown");
+        assert_eq!(t("1fff::1").1, "Unknown");
+        // multicast da native degil
+        assert_eq!(t("ff02::1").1, "Unknown");
     }
 
     #[test]

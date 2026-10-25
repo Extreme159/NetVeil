@@ -1,6 +1,6 @@
 [package]
 name = "netveil"
-version = "0.9.11"
+version = "0.9.23"
 description = "Gaming Network Diagnostics Tool"
 authors = ["netveil"]
 edition = "2021"
@@ -40,6 +40,8 @@ rustls-native-certs = "0.8"
 rustls-pki-types = "1"
 webpki-roots = "1"
 sha2 = "0.10"
+hmac = "0.12"
+rand = "0.8"
 rusqlite = { version = "0.32", features = ["bundled"] }
 rml_rtmp = "0.8"
 rml_amf0 = "0.3"
@@ -61,6 +63,10 @@ windows = { version = "0.58", features = [
     "Win32_System_Com",
     "Win32_System_IO",
 ] }
+
+[dev-dependencies]
+# Test-only: paused/controlled time for handshake wall-cap tests.
+tokio = { version = "1", features = ["test-util"] }
 
 [profile.release]
 panic = "abort"

@@ -18,11 +18,12 @@ interface BufferbloatTabProps extends TabProps {
   showHistory?: boolean;
 }
 
-export function BufferbloatTab({ results, phase, bufferbloatServerChoice, setBufferbloatServerChoice, bufferbloatCache, runBufferbloat, showHistory }: BufferbloatTabProps) {
+export function BufferbloatTab({ phase, bufferbloatServerChoice, setBufferbloatServerChoice, bufferbloatCache, runBufferbloat, showHistory }: BufferbloatTabProps) {
   useLang();
   // Gosterilen sonuc secili kaynagin CACHE'inden gelir (kaynak degisince o
-  // sunucunun tamamlanmis sonucu gorunur). Cache bossa son canli sonuca dus.
-  const bufferbloat = bufferbloatCache[bufferbloatServerChoice] ?? results.bufferbloat;
+  // sunucunun tamamlanmis sonucu gorunur). Baska kaynagin sonucu ASLA gosterilmez (UI-08):
+  // secili kaynak test edilmediyse 'test edilmedi' (intro) durumu gorunur.
+  const bufferbloat = bufferbloatCache[bufferbloatServerChoice] ?? null;
   const isRunning = phase === "running_bufferbloat";
   const [verdict, setVerdict] = useState<ModuleVerdict | null>(null);
 
@@ -57,16 +58,25 @@ export function BufferbloatTab({ results, phase, bufferbloatServerChoice, setBuf
   if (!bufferbloat) {
     // Bos durum: ortak pat1 kalibi. Default kaynak (Cloudflare) ile baslar;
     // sonuc gelince ServerPicker ust'te gorunur, kullanici 2. kaynagi secip tekrar test eder.
+    // Baska kaynagin sonucu varsa picker gorunur kalir (aksi halde kullanici kaynak degistirip geri donemez).
     return (
-      <TestIntro
-        iconKey="Buffer"
-        title={t("tab_bufferbloat_title")}
-        description={t("bloat_intro_desc")}
-        buttonLabel={t("btn_run_bufferbloat")}
-        onRun={() => runBufferbloat(bufferbloatServerChoice)}
-        isRunning={isRunning}
-        warning={t("test_warning_external_traffic")}
-      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {Object.keys(bufferbloatCache).length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <ServerPicker choice={bufferbloatServerChoice} setChoice={setBufferbloatServerChoice} disabled={isRunning} />
+          </div>
+        )}
+        <TestIntro
+          guarded
+          iconKey="Buffer"
+          title={t("tab_bufferbloat_title")}
+          description={t("bloat_intro_desc")}
+          buttonLabel={t("btn_run_bufferbloat")}
+          onRun={() => runBufferbloat(bufferbloatServerChoice)}
+          isRunning={isRunning}
+          warning={t("test_warning_external_traffic")}
+        />
+      </div>
     );
   }
 
@@ -113,10 +123,10 @@ export function BufferbloatTab({ results, phase, bufferbloatServerChoice, setBuf
         const legend = (
           <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
             {[
-              { color: "#6366f1", label: "Idle" },
-              { color: "#f97316", label: "Download" },
-              { color: "#ec4899", label: "Upload" },
-              { color: "#14b8a6", label: "Bi-Directional" },
+              { color: "#6366f1", label: t("bloat_legend_idle") },
+              { color: "#f97316", label: t("bloat_legend_download") },
+              { color: "#ec4899", label: t("bloat_legend_upload") },
+              { color: "#14b8a6", label: t("bloat_legend_bidi") },
             ].map(({ color, label }) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }} />
@@ -132,7 +142,7 @@ export function BufferbloatTab({ results, phase, bufferbloatServerChoice, setBuf
               <div className="card-head">
                 <div className="ico-wrap"><Icon.Wave /></div>
                 <h3>{t("bloat_latency_chart")} — PC ↔ WAN</h3>
-                <span className="head-sub">{bufferbloat.samples.filter(s => !s.phase.endsWith("_gw")).length} sample</span>
+                <span className="head-sub">{bufferbloat.samples.filter(s => !s.phase.endsWith("_gw")).length} {t("bloat_sample_unit")}</span>
               </div>
               <Chart samples={bufferbloat.samples} />
               {legend}
@@ -143,7 +153,7 @@ export function BufferbloatTab({ results, phase, bufferbloatServerChoice, setBuf
                 <div className="card-head">
                   <div className="ico-wrap"><Icon.Wave /></div>
                   <h3>{t("bloat_latency_chart")} — PC ↔ Router</h3>
-                  <span className="head-sub">{bufferbloat.samples.filter(s => s.phase.endsWith("_gw")).length} sample</span>
+                  <span className="head-sub">{bufferbloat.samples.filter(s => s.phase.endsWith("_gw")).length} {t("bloat_sample_unit")}</span>
                 </div>
                 <Chart samples={bufferbloat.samples} gateway />
                 {legend}

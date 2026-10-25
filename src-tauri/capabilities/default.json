@@ -6,6 +6,9 @@
   "permissions": [
     "core:default",
     "shell:allow-open",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
     "core:webview:allow-set-webview-zoom",
     "core:window:allow-set-size",
     "dialog:allow-save",

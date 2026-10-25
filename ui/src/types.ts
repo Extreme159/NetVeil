@@ -91,27 +91,31 @@ export interface BufferbloatResult {
 export interface SpeedTestResult {
   download_mbps: number;
   upload_mbps: number;
-  ping_ms: number;
-  jitter_ms: number;
+  /** null = ping could not be measured (NOT 0 ms). */
+  ping_ms: number | null;
+  jitter_ms: number | null;
   server: string;
   download_peak_mbps: number;
   upload_peak_mbps: number;
 }
 
 export interface GamingScore {
-  latency: number;
-  jitter: number;
-  bufferbloat: number;
-  packet_loss: number;
-  total: number;
+  // null = olculemedi (ping/bufferbloat verisi yok)
+  latency: number | null;
+  jitter: number | null;
+  bufferbloat: number | null;
+  packet_loss: number | null;
+  /** null = hicbir bilesen olculemedi (grade "-") */
+  total: number | null;
   grade: string;
 }
 
 export interface GeneralScore {
-  latency: number;
-  jitter: number;
-  bufferbloat: number;
-  packet_loss: number;
+  // latency/jitter/bufferbloat/packet_loss: null = olculemedi (ping/bufferbloat verisi yok)
+  latency: number | null;
+  jitter: number | null;
+  bufferbloat: number | null;
+  packet_loss: number | null;
   speed: number | null;
   wifi: number;
   throttle: number | null;
@@ -122,7 +126,8 @@ export interface GeneralScore {
   voip: number | null;
   dns_benchmark: number | null;
   twitch: number | null;
-  total: number;
+  /** null = yetersiz veri: ag-kalitesi olcumu yok (grade "-"); Wi-Fi tek basina not uretmez */
+  total: number | null;
   grade: string;
 }
 
@@ -143,7 +148,8 @@ export interface ModuleVerdict {
 }
 
 export interface Synthesis {
-  score: number;
+  /** null = yetersiz veri (grade "-", headline_key "synth_insufficient_data") */
+  score: number | null;
   grade: string;
   headline_key: string;
   insights: Insight[];
@@ -165,12 +171,14 @@ export interface SmartDiagnosis {
 }
 
 export interface FpsScore {
-  latency: number;
-  jitter: number;
-  packet_loss: number;
-  bufferbloat: number;
+  // null = olculemedi (ping/bufferbloat verisi yok)
+  latency: number | null;
+  jitter: number | null;
+  packet_loss: number | null;
+  bufferbloat: number | null;
   wifi: number;
-  total: number;
+  /** null = yetersiz veri: ag-kalitesi olcumu yok (grade "-") */
+  total: number | null;
   grade: string;
 }
 
@@ -189,6 +197,10 @@ export interface TopologyInfo {
   city: string;
 }
 
+/** "Blocked (RST)"/"Blocked (DROP)" = blocked + mechanism; "Error" = not measured. */
+export type ThrottleVerdict =
+  "Normal" | "Throttled" | "Blocked" | "Blocked (RST)" | "Blocked (DROP)" | "Error" | "Pending";
+
 export interface ThrottleTestResult {
   baseline_mbps: number;
   baseline_upload_mbps: number;
@@ -201,11 +213,13 @@ export interface ThrottleTestResult {
   quic_throttle: number;
   wireguard_throttle: number;
   openvpn_throttle: number;
-  bittorrent_verdict: "Normal" | "Throttled" | "Blocked" | "Pending";
-  quic_verdict: "Normal" | "Throttled" | "Blocked" | "Pending";
-  wireguard_verdict: "Normal" | "Throttled" | "Blocked" | "Pending";
-  openvpn_verdict: "Normal" | "Throttled" | "Blocked" | "Pending";
+  bittorrent_verdict: ThrottleVerdict;
+  quic_verdict: ThrottleVerdict;
+  wireguard_verdict: ThrottleVerdict;
+  openvpn_verdict: ThrottleVerdict;
   isp_throttles: boolean;
+  /** true = measurement incomplete (no baseline / a protocol errored) and no throttling found; NOT a healthy result. */
+  inconclusive?: boolean;
 }
 
 // ─── IPv6
@@ -227,6 +241,8 @@ export interface Ipv6ConnectivityInfo {
   wan_ipv6: string | null;
   isp_ipv6: string | null;
   dns_ipv6_works: boolean;
+  /** En az bir IPv6 TCP tasima probu basarili (Full icin gerekli). Eski sonuclarda yok. */
+  ipv6_transport_works?: boolean;
   connectivity_grade: "Full" | "Partial" | "Tunnel" | "None";
 }
 
@@ -305,8 +321,13 @@ export interface DohDotResult {
 export interface PortEntry {
   port: number;
   description: string;
+  /** TCP baglantisi kabul edildi (sunucuda dinleyen var). */
   open: boolean;
   latency_ms: number | null;
+  /** Yol filtrelenmiyor: kabul VEYA RST. Eski sonuclarda yok. */
+  reachable?: boolean;
+  /** "open" | "closed" (RST: port kapali, yol acik) | "filtered" (yanit yok). Eski sonuclarda yok. */
+  state?: "open" | "closed" | "filtered";
 }
 
 export interface PortTestResult {
@@ -371,6 +392,8 @@ export interface IspInterventionResult {
   dnssec: DnssecResult;
   ech: EchResult;
   any_intervention_detected: boolean;
+  /** En az bir alt-test Inconclusive (olculemedi). Eski sonuclarda yok. */
+  any_inconclusive?: boolean;
 }
 
 export interface UpdateInfo {
@@ -461,6 +484,8 @@ export interface AccessPoint {
   channel_width: string;
   phy_type: string;
   is_connected: boolean;
+  /** Bağlı AP ile aynı fiziksel cihaz / aynı SSID — Rust is_own_ap ile hesaplanır. */
+  is_own: boolean;
 }
 
 export interface ChannelRecommendation {
@@ -514,6 +539,8 @@ export interface TwitchServerResult {
   bandwidth_mbps: number | null;
   /** Auto/manuel seçimle bandwidth testine dahil edildi mi. */
   selected: boolean;
+  /** Bandwidth ölçülemediyse neden kodu: "rtmps_unsupported" | "tls" | "failed". */
+  bandwidth_error?: string | null;
 }
 
 export interface TwitchTestResult {
@@ -567,7 +594,7 @@ export interface DnsLeakResult {
   stun_public_ip: string | null;
   /** Aktif VPN arayüzü tespit edildi mi. */
   vpn_active: boolean;
-  /** "safe" | "normal" | "leak" | "unknown" */
+  /** "info" (egress olculdu, kullanici yorumlar) | "unknown"; eski sonuclarda "safe" | "normal" | "leak" */
   verdict: string;
   /** Karar açıklaması i18n anahtarı. */
   detail_key: string;

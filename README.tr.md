@@ -8,10 +8,10 @@ NetVeil; ping, jitter, paket kaybı, bufferbloat, hız, ISP throttle/müdahale, 
 - 🎯 **Tek tıkla teşhis** — bütün testleri çalıştırır, harf notu + net açıklama verir
 - 🔍 **Rakiplerde olmayan testler** — ISP'nin BitTorrent/QUIC/WireGuard/OpenVPN trafiğini yavaşlatıp yavaşlatmadığını protokol seviyesinde tespit eder
 - 💬 **Anlaşılır** — "45ms jitter" değil, "rekabetçi oyunlarda ara sıra takılma yaşayabilirsin"
-- 🪶 **Hafif** — küçük indirme, hızlı kurulum, saniyeler içinde hazır
+- 🪶 **Windows kurulum paketi (NSIS)** — NetVeil'i kurarak kullan; uygulama WebView2 kullanır
 - 🔒 **Dürüst** — ölçemediği şeyi "ölçtüm" demez, uydurma skor üretmez
 
-![Version](https://img.shields.io/badge/version-0.9.15-purple)
+![Version](https://img.shields.io/badge/version-0.9.23-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-BSL%201.1-orange)
 ![Tauri](https://img.shields.io/badge/Tauri-2.11-orange)
@@ -109,15 +109,15 @@ Ağının arasına girilip girilmediğini denetler:
 
 ## 🚀 Kullanım
 
-### Kurulum (önerilen)
-[Releases](https://github.com/Extreme159/NetVeil/releases/latest) sayfasından **NetVeil_X.X.X_x64-setup.exe** indir:
+### Windows Kurulum Paketi (önerilen)
+[Releases](https://github.com/Extreme159/NetVeil/releases) sayfasından yayınlanan sürümün **NetVeil_X.Y.Z_x64-setup.exe** kurulum paketini indir (X.Y.Z sürüm yer tutucusudur):
 
-1. İndir ve kurulumu çalıştır
-2. NetVeil'i başlat — ICMP ping için yönetici olarak çalıştır
+1. NSIS kurulum paketini indir ve çalıştır
+2. Kurulu NetVeil uygulamasını aç; ICMP ping için **Yönetici olarak çalıştır**
 3. Gösterge Panelinde bir teşhis seç: **Hızlı**, **Oyun**, veya **Gelişmiş**
 4. Sonuçları harf notu + açıklamalarla gör, istersen PDF olarak kaydet
 
-> WebView2 Windows 10/11'de zaten yüklü gelir.
+> Bu bir kurulum paketidir, portable uygulama değildir. NetVeil WebView2 kullanır.
 
 ### Kaynaktan Build
 
@@ -129,16 +129,16 @@ cd ui && npm install && cd ..
 npx tauri dev
 ```
 
-**Gereksinimler:**
-- Node.js 18+
-- Rust 1.75+
+**Build ortamı** (CI Node 20 ve Rust stable kullanır; bunlar doğrulanmış minimum sürümler değildir):
+- Node.js 20+ (CI: 20)
+- Rust stable
 - Windows 10/11 (Linux/macOS desteği planda)
 
-### Installer Build
+### NSIS Kurulum Paketi Build
 
 ```powershell
 npx tauri build --bundles nsis
-# Çıktı: src-tauri/target/release/bundle/nsis/NetVeil_X.X.X_x64-setup.exe
+# Çıktı: src-tauri/target/release/bundle/nsis/*-setup.exe
 ```
 
 ---
@@ -147,7 +147,7 @@ npx tauri build --bundles nsis
 
 | Katman | Teknoloji |
 |--------|-----------|
-| Frontend | React 19, TypeScript 5.9, Vite 8 |
+| Frontend | React 19, TypeScript 6.0, Vite 8 |
 | Stil | Tailwind 4 + custom glass/dark CSS |
 | Backend | Rust 2021, Tokio async |
 | Native köprü | Tauri 2.11, WebView2 |
@@ -177,7 +177,7 @@ netveil/
 │   ├── wifi.rs / wifi_scan.rs  # Wi-Fi bilgisi + kanal taraması (2.4/5/6 GHz)
 │   ├── network_stability.rs    # Arka plan kopma/RTT monitörü + tray
 │   ├── twitch_test.rs / twitch_rtmp.rs  # Twitch yayın testi (RTMP ingest)
-│   ├── voip.rs                 # VoIP kalitesi değerlendirmesi
+│   ├── voip_test.rs            # VoIP kalitesi değerlendirmesi
 │   ├── lan_scanner.rs          # Yerel ağ cihaz taraması
 │   ├── lan_speed.rs            # Yerel ağ verim ölçümü
 │   ├── db.rs                   # SQLite yerel veri (telemetri, kopma logu)
@@ -188,7 +188,6 @@ netveil/
 │   ├── components/tabs/        # Her araç için bir sekme bileşeni
 │   ├── components/             # Sidebar, TopBar, ConnectionBar, SpeedGauge, GradeBox...
 │   └── lib/                    # i18n TR/EN, icons, PDF rapor, helpers
-├── server/                     # netveil.net sunucu kodu (Rust + Axum)
 ├── assets/png/                 # Marka logosu (app icon, favicon, mark)
 └── scripts/
     └── bump-version.mjs        # Versiyon dosyalarını senkron günceller
@@ -203,16 +202,16 @@ netveil/
 ```bash
 npx tauri dev        # Tauri dev (Rust hot reload + Vite HMR)
 npm run build        # UI production build
-npx tauri build --bundles nsis  # NSIS installer (NetVeil_X.X.X_x64-setup.exe)
-npm run bump         # Patch: 0.9.x → 0.9.(x+1)
-npm run bump feature # Minor: 0.9.x → 0.10.x
-npm run bump major   # Major: 0.x.x → 1.0.0
+npx tauri build --bundles nsis  # Windows NSIS kurulum paketi
+npm run bump         # Patch: 0.7.10 → 0.7.11 (beta patch 10'dan başlar)
+npm run bump:minor   # Minor: 0.7.x → 0.8.10
+npm run bump:major   # Script davranışı: 0.x.x → 1.0.10 (final 1.0.0 hedefi değil)
 ```
 
 ### Mimari Notlar
 
 **Versiyon senkronizasyonu:**
-`package.json`, `ui/package.json`, `tauri.conf.json`, `Cargo.toml`, `README.md` ve sunucu `/version` — hepsi `npm run bump` ile tek seferde güncellenir. UI'da versiyon **Ayarlar**'da gösterilir (kaynak: `package.json`).
+`npm run bump` yedi yerel dosyayı günceller: `package.json`, `ui/package.json`, `package-lock.json`, `ui/package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` ve `README.md` rozeti. Lockfile'larda yalnız kök paket sürümleri değişir. UI'da versiyon **Ayarlar**'da gösterilir (kaynak: `ui/package.json`).
 
 **`dlog!` macro:**
 `lib.rs`'te tanımlı. Debug build'de `println!`, release'de no-op → CMD penceresi açılmaz.

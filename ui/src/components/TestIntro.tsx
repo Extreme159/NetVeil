@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Icon, type IconKey } from "../lib/icons";
 import { t } from "../lib/i18n";
+import { useTestGuard } from "./testGuard";
 
 /**
  * Ortak bos-durum kalibi (pat1): Icon + Baslik + Aciklama + buton.
@@ -28,6 +29,8 @@ interface Props {
   warning?: string;
   /** PRO kilit: true ise baslat butonu pasif + gold 'Aktive Et' seridi gosterilir. */
   locked?: boolean;
+  /** Yalnizca paylasilan test kilidine katilan aktif testler icin. */
+  guarded?: boolean;
   /** Kilitli seritteki butona basilinca (Settings'e yonlendirir). */
   onActivate?: () => void;
 }
@@ -48,10 +51,14 @@ export function TestIntro({
   nextLabel,
   warning,
   locked,
+  guarded = false,
   onActivate,
 }: Props) {
   const Ico = Icon[iconKey];
   const isNextMode = typeof onNext === "function";
+  // Baska bir test calisirken Baslat pasif + ipucu (UI-01). Next modu test baslatmaz -> serbest.
+  const { activeTest } = useTestGuard();
+  const otherBusy = guarded && activeTest !== null && !isRunning;
   return (
     <div className="card" style={wrap}>
       <div style={{ opacity: 0.45, color: "var(--text-muted)" }}>
@@ -75,7 +82,7 @@ export function TestIntro({
         <button
           className="btn"
           onClick={onRun}
-          disabled={isRunning || locked}
+          disabled={isRunning || locked || otherBusy}
           type="button"
           style={{ marginTop: 4, ...(locked ? { opacity: 0.4, cursor: "not-allowed" } : {}) }}
         >
@@ -84,6 +91,9 @@ export function TestIntro({
             : <Icon.Play />}
           {isRunning ? t("btn_running") : buttonLabel}
         </button>
+      )}
+      {otherBusy && !isNextMode && !locked && (
+        <div style={{ fontSize: 12, color: "#fbbf24" }}>{t("test_busy_hint")}</div>
       )}
       {locked && <ProActivateBar onActivate={onActivate} />}
     </div>

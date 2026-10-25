@@ -5,6 +5,8 @@ import { GradeBox } from "../GradeBox";
 import { t } from "../../lib/i18n";
 import { useLang } from "../../lib/useLang";
 import { DiagnosticProgress } from "../DiagnosticProgress";
+import { RerunButton } from "../RerunButton";
+import { useTestGuard } from "../testGuard";
 
 // Dinamik i18n anahtari icin guvenli cast
 const tk = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -29,7 +31,7 @@ function SynthesisCard({ s }: { s: Synthesis }) {
         <GradeBox grade={s.grade} size="lg" glow />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 700, color }}>{tk("gaming_score_label")}: {s.score}/100</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 700, color }}>{tk("gaming_score_label")}: {s.score != null ? `${s.score}/100` : "\u2014"}</span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.55 }}>
             {tk(s.headline_key)}
@@ -76,6 +78,7 @@ function ModuleRow({ m }: { m: ModuleVerdict }) {
 export function GamingDiagnosisTab({ fpsDiagnosis, phase, onRun, testMode, totalElapsedMs }: Props) {
   useLang();
   const isBusy = phase.startsWith("running_");
+  const { activeTest } = useTestGuard();
 
   if (!fpsDiagnosis) {
     if (isBusy) {
@@ -92,7 +95,7 @@ export function GamingDiagnosisTab({ fpsDiagnosis, phase, onRun, testMode, total
         <div style={{ fontSize: 12, color: "#ef4444", maxWidth: 420, lineHeight: 1.6, padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
           {t("test_warning_external_traffic")}
         </div>
-        <button className="btn" onClick={onRun} disabled={isBusy} type="button">
+        <button className="btn" onClick={onRun} disabled={isBusy || activeTest !== null} type="button">
           {isBusy ? <Icon.Refresh style={{ animation: "spin 1s linear infinite" }} /> : <Icon.Play />}
           {isBusy ? t("btn_running") : t("gaming_scan_run_btn")}
         </button>
@@ -103,6 +106,7 @@ export function GamingDiagnosisTab({ fpsDiagnosis, phase, onRun, testMode, total
   // Sonuç var → oyun skoru (rekabetçi) + modül tablosu
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <RerunButton onRun={onRun} running={isBusy} />
       <SynthesisCard s={fpsDiagnosis.fps_synthesis} />
       <div className="card">
         <div className="card-head">
